@@ -8,14 +8,13 @@ import LoginModal from './components/LoginModal';
 import LegalResearch from './components/LegalResearch';
 import AboutUs from './components/AboutUs';
 import ContactUs from './components/ContactUs';
-import ClientDashboard from './components/ClientDashboard';
+import LegalDashboard from './components/LegalDashboard';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import WelcomeTour from './components/WelcomeTour';
 import Blog from './components/Blog';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import LegalChatbot from './components/LegalChatbot';
-import LegalDashboard from './components/LegalDashboard';
 
 const Forbidden = () => (
   <div className="pt-40 pb-60 px-6 text-center">
@@ -53,7 +52,9 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <ClientDashboard user={currentUser} onUpdateUser={(data) => setCurrentUser({...currentUser, ...data})} onBookService={(service) => setSelectedService(service)} refreshTrigger={dashboardRefreshTrigger} />;
+        return currentUser?.appRole === 'Admin' ? (
+          <LegalDashboard user={currentUser} />
+        ) : <LegalDashboard user={currentUser} />;
       case 'legal-research':
         return <LegalResearch />;
       case 'about-us':
@@ -108,7 +109,7 @@ export default function App() {
     if (!pendingService) {
       if (userData?.appRole === 'Admin') setCurrentPage('admin-panel');
       else if (userData?.appRole === 'Staff') setCurrentPage('staff-portal');
-      else setCurrentPage('dashboard');
+      else setCurrentPage('admin-panel');
     } else {
       setSelectedService(pendingService);
       setPendingService(null);
