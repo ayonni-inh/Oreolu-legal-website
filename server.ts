@@ -101,6 +101,47 @@ let systemLogs: any[] = [
   { id: 'log-1', timestamp: new Date().toISOString(), action: 'SYSTEM_BOOT', admin: 'SYSTEM', details: 'Law Firm Portal initialized with Super Admin protocol.' }
 ];
 
+// Unified activity stream visible to the Admin AI agent
+let activityLog: any[] = [
+  {
+    id: 'act-seed-1',
+    timestamp: new Date().toISOString(),
+    actorId: 'SYSTEM',
+    actorName: 'System',
+    actorRole: 'System',
+    category: 'SYSTEM',
+    action: 'SYSTEM_BOOT',
+    target: '-',
+    details: 'AI Center initialized. Activity mirroring enabled across all user types.',
+    severity: 'info'
+  }
+];
+
+const recordActivity = (entry: {
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  category: string;
+  action: string;
+  target?: string;
+  details: string;
+  severity?: 'info' | 'warning' | 'critical';
+}) => {
+  activityLog.unshift({
+    id: `act-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    timestamp: new Date().toISOString(),
+    actorId: entry.actorId || 'unknown',
+    actorName: entry.actorName || 'Unknown',
+    actorRole: entry.actorRole || 'Client',
+    category: entry.category,
+    action: entry.action,
+    target: entry.target || '-',
+    details: entry.details,
+    severity: entry.severity || 'info'
+  });
+  if (activityLog.length > 500) activityLog = activityLog.slice(0, 500);
+};
+
 const addLog = (action: string, admin: string, details: string) => {
   systemLogs.unshift({
     id: `log-${Math.random().toString(36).substr(2, 9)}`,
@@ -109,7 +150,111 @@ const addLog = (action: string, admin: string, details: string) => {
     admin,
     details
   });
+  recordActivity({
+    actorName: admin,
+    actorRole: 'Admin',
+    category: 'ADMIN',
+    action,
+    details,
+    severity: action.includes('FINANCIAL') || action.includes('PERMISSIONS') ? 'warning' : 'info'
+  });
 };
+
+// In-memory stores for AI Center features
+let lawyers = [
+  { id: 'lw-1', name: 'Dr. Oroelu G. Agidi', specialties: ['Corporate', 'Litigation', 'Compliance'], activeCases: 3, capacity: 8, rating: 4.9 },
+  { id: 'lw-2', name: 'Sarah Smith', specialties: ['Contracts', 'Property'], activeCases: 5, capacity: 10, rating: 4.7 },
+  { id: 'lw-3', name: 'Michael Adebayo', specialties: ['Family', 'Litigation'], activeCases: 2, capacity: 8, rating: 4.6 },
+  { id: 'lw-4', name: 'Aisha Bello', specialties: ['IP', 'Corporate', 'Trademarks'], activeCases: 4, capacity: 10, rating: 4.8 }
+];
+
+let cases = [
+  {
+    id: 'CASE-1001',
+    title: 'Agidi Tech vs. ZenithCorp - Breach of Contract',
+    clientId: 'client-1',
+    clientName: 'Godwin Agidi',
+    category: 'Litigation',
+    priority: 'HIGH',
+    status: 'ACTIVE',
+    assignedLawyerId: 'lw-1',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+    nextAction: 'File Reply to Counter-claim',
+    nextActionDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString()
+  },
+  {
+    id: 'CASE-1002',
+    title: 'Trademark Registration - Acme Holdings',
+    clientId: 'client-2',
+    clientName: 'Acme Holdings',
+    category: 'Intellectual Property',
+    priority: 'MEDIUM',
+    status: 'ACTIVE',
+    assignedLawyerId: 'lw-4',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+    nextAction: 'Submit IPO Filing',
+    nextActionDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 12).toISOString()
+  },
+  {
+    id: 'CASE-1003',
+    title: 'Corporate Restructuring - Lekki Logistics',
+    clientId: 'client-3',
+    clientName: 'Lekki Logistics Ltd',
+    category: 'Corporate',
+    priority: 'LOW',
+    status: 'INTAKE',
+    assignedLawyerId: null as any,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    nextAction: 'Lawyer assignment',
+    nextActionDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 1).toISOString()
+  }
+];
+
+let caseTimelines: Record<string, any[]> = {
+  'CASE-1001': [
+    { id: 't-1', date: new Date(Date.now() - 1000*60*60*24*14).toISOString(), event: 'Case Opened', detail: 'Engagement letter executed.' },
+    { id: 't-2', date: new Date(Date.now() - 1000*60*60*24*10).toISOString(), event: 'Statement of Claim Filed', detail: 'Filed at Federal High Court, Lagos.' },
+    { id: 't-3', date: new Date(Date.now() - 1000*60*60*24*5).toISOString(), event: 'Counter-claim Received', detail: 'Defendant filed counter-claim of $250K.' }
+  ],
+  'CASE-1002': [
+    { id: 't-1', date: new Date(Date.now() - 1000*60*60*24*30).toISOString(), event: 'Trademark Application Drafted', detail: 'Initial Class 35 + 42 application drafted.' }
+  ],
+  'CASE-1003': [
+    { id: 't-1', date: new Date(Date.now() - 1000*60*60*24*2).toISOString(), event: 'Intake Submitted', detail: 'Smart onboarding form completed.' }
+  ]
+};
+
+let caseNotes: Record<string, any[]> = {
+  'CASE-1001': [
+    { id: 'n-1', author: 'Dr. Oroelu G. Agidi', role: 'Admin', timestamp: new Date(Date.now()-1000*60*60*24*4).toISOString(), text: 'Counter-claim weak on merits; recommend aggressive reply.' }
+  ],
+  'CASE-1002': [],
+  'CASE-1003': []
+};
+
+let reminders: any[] = [
+  { id: 'rm-1', caseId: 'CASE-1001', title: 'Filing deadline reply', dueDate: new Date(Date.now()+1000*60*60*24*3).toISOString(), channel: 'email+sms', status: 'SCHEDULED' },
+  { id: 'rm-2', caseId: 'CASE-1002', title: 'Pay IPO fee', dueDate: new Date(Date.now()+1000*60*60*24*8).toISOString(), channel: 'email', status: 'SCHEDULED' }
+];
+
+let signatureRequests: any[] = [
+  { id: 'sig-1', caseId: 'CASE-1001', document: 'Reply Affidavit.pdf', signer: 'Godwin Agidi', email: 'ogouifemi@gmail.com', status: 'PENDING', sentAt: new Date(Date.now()-1000*60*60*24*1).toISOString() },
+  { id: 'sig-2', caseId: 'CASE-1002', document: 'Power of Attorney.pdf', signer: 'Acme Holdings Director', email: 'director@acme.com', status: 'SIGNED', sentAt: new Date(Date.now()-1000*60*60*24*4).toISOString() }
+];
+
+let consultations: any[] = [
+  { id: 'con-1', caseId: 'CASE-1001', clientName: 'Godwin Agidi', scheduledFor: new Date(Date.now()+1000*60*60*24*2).toISOString(), provider: 'Google Meet', joinUrl: 'https://meet.google.com/agidi-demo', status: 'SCHEDULED' },
+  { id: 'con-2', caseId: 'CASE-1003', clientName: 'Lekki Logistics Ltd', scheduledFor: new Date(Date.now()+1000*60*60*24*1).toISOString(), provider: 'Zoom', joinUrl: 'https://zoom.us/j/agidi-intake', status: 'SCHEDULED' }
+];
+
+let onboardingSubmissions: any[] = [];
+
+const ONBOARDING_FORMS = [
+  { id: 'corp', label: 'Corporate Intake', fields: ['Company Name', 'RC Number', 'Industry', 'Annual Revenue', 'Matter Description'] },
+  { id: 'lit', label: 'Litigation Intake', fields: ['Plaintiff', 'Defendant', 'Court', 'Claim Amount', 'Summary of Facts'] },
+  { id: 'ip', label: 'IP / Trademark Intake', fields: ['Mark / Title', 'Class', 'Owner', 'Territory', 'Goods/Services'] },
+  { id: 'family', label: 'Family Law Intake', fields: ['Parties', 'Marriage Date', 'Children', 'Issue', 'Desired Outcome'] }
+];
 
 async function startServer() {
   const app = express();
@@ -221,6 +366,15 @@ async function startServer() {
       if (defaultStatus === 'PENDING_ADMIN_APPROVAL') {
         addLog('APPOINTMENT_REQUESTED', requesterName || 'System', `New appointment ${newAppointment.tracking_number} entered approval queue.`);
       }
+      recordActivity({
+        actorId: userId,
+        actorName: requesterName || 'Client',
+        actorRole: role || 'Client',
+        category: 'APPOINTMENT',
+        action: 'APPOINTMENT_CREATED',
+        target: newAppointment.tracking_number,
+        details: `${serviceTitle} booked for ${date} ${time}`
+      });
 
       if (supabase) {
         const { data, error } = await supabase
@@ -339,7 +493,7 @@ async function startServer() {
         if (error) throw error;
         return res.json(data);
       }
-      res.json(allUsers);
+      res.json(fallbackUsers);
     } catch (error) {
       res.status(500).json({ error: "Error fetching system users" });
     }
@@ -358,7 +512,7 @@ async function startServer() {
         const { error } = await supabase.from('users').update({ status }).eq('id', id);
         if (error) throw error;
       } else {
-        const user = allUsers.find(u => u.id === id);
+        const user = fallbackUsers.find(u => u.id === id);
         if (user) user.status = status;
       }
       res.json({ success: true });
@@ -476,6 +630,257 @@ async function startServer() {
 
     addLog('FINANCIAL_OVERRIDE', adminName || 'Admin', `${action} of ${amount} for user ${targetUser}`);
     res.json({ success: true, message: `Financial override ${action} completed.` });
+  });
+
+  // ===== AI CENTER ENDPOINTS =====
+
+  // Unified activity stream
+  app.get("/api/activity", (req, res) => {
+    const role = req.query.role as string;
+    if (role !== 'Admin') return res.status(403).json({ error: "Admin only" });
+    const limit = Number(req.query.limit) || 100;
+    res.json(activityLog.slice(0, limit));
+  });
+
+  app.post("/api/activity", (req, res) => {
+    const { actorId, actorName, actorRole, category, action, target, details, severity } = req.body;
+    recordActivity({ actorId, actorName, actorRole, category, action, target, details, severity });
+    res.json({ success: true });
+  });
+
+  // Cases CRUD
+  app.get("/api/cases", (req, res) => {
+    const role = req.query.role as string;
+    if (role !== 'Admin' && role !== 'Staff') return res.status(403).json({ error: "Forbidden" });
+    res.json(cases);
+  });
+
+  app.post("/api/cases", (req, res) => {
+    const { title, clientId, clientName, category, priority, adminName } = req.body;
+    const id = `CASE-${1000 + cases.length + 1}`;
+    const newCase = {
+      id, title, clientId, clientName,
+      category: category || 'General',
+      priority: priority || 'MEDIUM',
+      status: 'INTAKE',
+      assignedLawyerId: null as any,
+      createdAt: new Date().toISOString(),
+      nextAction: 'Lawyer assignment',
+      nextActionDate: new Date(Date.now() + 1000*60*60*24).toISOString()
+    };
+    cases.push(newCase);
+    caseTimelines[id] = [{ id: 't-1', date: new Date().toISOString(), event: 'Case Opened', detail: `Created by ${adminName || 'Admin'}` }];
+    caseNotes[id] = [];
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'CASE_CREATED', target: id, details: `New case opened: ${title}` });
+    res.json(newCase);
+  });
+
+  app.patch("/api/cases/:id", (req, res) => {
+    const { id } = req.params;
+    const { priority, status, nextAction, nextActionDate, adminName } = req.body;
+    const c = cases.find(x => x.id === id);
+    if (!c) return res.status(404).json({ error: "Not found" });
+    if (priority) c.priority = priority;
+    if (status) c.status = status;
+    if (nextAction) c.nextAction = nextAction;
+    if (nextActionDate) c.nextActionDate = nextActionDate;
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'CASE_UPDATED', target: id, details: `Updated case ${id}` });
+    res.json(c);
+  });
+
+  // Case timeline
+  app.get("/api/cases/:id/timeline", (req, res) => {
+    res.json(caseTimelines[req.params.id] || []);
+  });
+  app.post("/api/cases/:id/timeline", (req, res) => {
+    const { id } = req.params;
+    const { event, detail, adminName } = req.body;
+    const entry = { id: `t-${Date.now()}`, date: new Date().toISOString(), event, detail };
+    caseTimelines[id] = caseTimelines[id] || [];
+    caseTimelines[id].unshift(entry);
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'TIMELINE_ENTRY', target: id, details: `${event}: ${detail || ''}` });
+    res.json(entry);
+  });
+
+  // Case notes (internal)
+  app.get("/api/cases/:id/notes", (req, res) => {
+    res.json(caseNotes[req.params.id] || []);
+  });
+  app.post("/api/cases/:id/notes", (req, res) => {
+    const { id } = req.params;
+    const { author, role, text } = req.body;
+    const entry = { id: `n-${Date.now()}`, author: author || 'Admin', role: role || 'Admin', timestamp: new Date().toISOString(), text };
+    caseNotes[id] = caseNotes[id] || [];
+    caseNotes[id].unshift(entry);
+    recordActivity({ actorName: author || 'Admin', actorRole: role || 'Admin', category: 'CASE', action: 'NOTE_ADDED', target: id, details: `Note added` });
+    res.json(entry);
+  });
+
+  // Lawyers + assignment engine
+  app.get("/api/lawyers", (req, res) => {
+    res.json(lawyers);
+  });
+
+  app.post("/api/lawyers/assign", (req, res) => {
+    const { caseId, lawyerId, adminName } = req.body;
+    const c = cases.find(x => x.id === caseId);
+    const lw = lawyers.find(l => l.id === lawyerId);
+    if (!c || !lw) return res.status(404).json({ error: "Case or lawyer not found" });
+    if (c.assignedLawyerId) {
+      const prev = lawyers.find(l => l.id === c.assignedLawyerId);
+      if (prev) prev.activeCases = Math.max(0, prev.activeCases - 1);
+    }
+    c.assignedLawyerId = lw.id;
+    c.status = c.status === 'INTAKE' ? 'ACTIVE' : c.status;
+    lw.activeCases += 1;
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'LAWYER_ASSIGNED', target: caseId, details: `Assigned ${lw.name} to ${caseId}` });
+    res.json({ success: true, case: c, lawyer: lw });
+  });
+
+  app.post("/api/lawyers/recommend", (req, res) => {
+    const { caseId } = req.body;
+    const c = cases.find(x => x.id === caseId);
+    if (!c) return res.status(404).json({ error: "Case not found" });
+    const scored = lawyers.map(l => {
+      const specialtyMatch = l.specialties.some(s => c.category.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(c.category.toLowerCase())) ? 40 : 0;
+      const capacityScore = Math.max(0, (l.capacity - l.activeCases)) * 5;
+      const ratingScore = l.rating * 10;
+      return { lawyer: l, score: Math.round(specialtyMatch + capacityScore + ratingScore), reason: `${specialtyMatch ? 'Matches specialty. ' : ''}Capacity ${l.capacity - l.activeCases}/${l.capacity} free. Rating ${l.rating}.` };
+    }).sort((a, b) => b.score - a.score);
+    res.json(scored);
+  });
+
+  // Reminders
+  app.get("/api/reminders", (req, res) => res.json(reminders));
+  app.post("/api/reminders", (req, res) => {
+    const { caseId, title, dueDate, channel, adminName } = req.body;
+    const r = { id: `rm-${Date.now()}`, caseId, title, dueDate, channel: channel || 'email', status: 'SCHEDULED' };
+    reminders.unshift(r);
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'REMINDER', action: 'REMINDER_CREATED', target: caseId, details: `${title} scheduled for ${dueDate}` });
+    res.json(r);
+  });
+  app.patch("/api/reminders/:id", (req, res) => {
+    const r = reminders.find(x => x.id === req.params.id);
+    if (!r) return res.status(404).json({ error: "Not found" });
+    r.status = req.body.status || r.status;
+    res.json(r);
+  });
+
+  // E-signature workflow
+  app.get("/api/esign", (req, res) => res.json(signatureRequests));
+  app.post("/api/esign", (req, res) => {
+    const { caseId, document, signer, email, adminName } = req.body;
+    const s = { id: `sig-${Date.now()}`, caseId, document, signer, email, status: 'PENDING', sentAt: new Date().toISOString() };
+    signatureRequests.unshift(s);
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ESIGN', action: 'ESIGN_REQUESTED', target: caseId, details: `Sent ${document} to ${signer} (${email})` });
+    res.json(s);
+  });
+  app.patch("/api/esign/:id", (req, res) => {
+    const s = signatureRequests.find(x => x.id === req.params.id);
+    if (!s) return res.status(404).json({ error: "Not found" });
+    s.status = req.body.status || s.status;
+    recordActivity({ actorName: 'System', actorRole: 'System', category: 'ESIGN', action: 'ESIGN_STATUS', target: s.caseId, details: `${s.document} marked ${s.status}` });
+    res.json(s);
+  });
+
+  // Video consultations
+  app.get("/api/consultations", (req, res) => res.json(consultations));
+  app.post("/api/consultations", (req, res) => {
+    const { caseId, clientName, scheduledFor, provider, adminName } = req.body;
+    const meetCode = Math.random().toString(36).substr(2, 8);
+    const joinUrl = provider === 'Zoom' ? `https://zoom.us/j/${meetCode}` : `https://meet.google.com/${meetCode}`;
+    const c = { id: `con-${Date.now()}`, caseId, clientName, scheduledFor, provider: provider || 'Google Meet', joinUrl, status: 'SCHEDULED' };
+    consultations.unshift(c);
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CONSULTATION', action: 'CONSULTATION_SCHEDULED', target: caseId, details: `${provider || 'Google Meet'} for ${clientName} on ${scheduledFor}` });
+    res.json(c);
+  });
+
+  // Onboarding intake forms
+  app.get("/api/onboarding/forms", (req, res) => res.json(ONBOARDING_FORMS));
+  app.post("/api/onboarding/submit", (req, res) => {
+    const { formId, submitter, payload } = req.body;
+    const sub = { id: `sub-${Date.now()}`, formId, submitter, payload, submittedAt: new Date().toISOString(), status: 'NEW' };
+    onboardingSubmissions.unshift(sub);
+    const formLabel = ONBOARDING_FORMS.find(f => f.id === formId)?.label || formId;
+    recordActivity({ actorName: submitter || 'Anonymous', actorRole: 'Client', category: 'ONBOARDING', action: 'INTAKE_SUBMITTED', target: formId, details: `${formLabel} intake submitted` });
+    res.json(sub);
+  });
+  app.get("/api/onboarding/submissions", (req, res) => res.json(onboardingSubmissions));
+
+  // Analytics
+  app.get("/api/analytics", (req, res) => {
+    const totalCases = cases.length;
+    const byPriority = cases.reduce((acc: any, c) => { acc[c.priority] = (acc[c.priority] || 0) + 1; return acc; }, {});
+    const byStatus = cases.reduce((acc: any, c) => { acc[c.status] = (acc[c.status] || 0) + 1; return acc; }, {});
+    const byCategory = cases.reduce((acc: any, c) => { acc[c.category] = (acc[c.category] || 0) + 1; return acc; }, {});
+    const lawyerLoad = lawyers.map(l => ({ name: l.name, active: l.activeCases, capacity: l.capacity, utilization: Math.round((l.activeCases / l.capacity) * 100) }));
+    const last7 = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0,0,0,0);
+      const day = d.toISOString().slice(0, 10);
+      const count = activityLog.filter(a => a.timestamp.slice(0, 10) === day).length;
+      return { day: day.slice(5), count };
+    });
+    res.json({
+      totalCases,
+      byPriority,
+      byStatus,
+      byCategory,
+      lawyerLoad,
+      activityTrend: last7,
+      pendingSignatures: signatureRequests.filter(s => s.status === 'PENDING').length,
+      upcomingReminders: reminders.filter(r => r.status === 'SCHEDULED').length,
+      upcomingConsultations: consultations.filter(c => new Date(c.scheduledFor) > new Date()).length,
+      onboardingSubmissions: onboardingSubmissions.length
+    });
+  });
+
+  // Admin AI assistant (knows the activity stream)
+  app.post("/api/ai/admin-chat", async (req, res) => {
+    try {
+      const { message, history } = req.body;
+      const recent = activityLog.slice(0, 25).map(a => `[${a.timestamp.slice(11,16)}] ${a.actorRole} ${a.actorName} - ${a.action}: ${a.details}`).join('\n');
+      const summary = `OPEN CASES: ${cases.length} (HIGH=${cases.filter(c=>c.priority==='HIGH').length}, MED=${cases.filter(c=>c.priority==='MEDIUM').length}, LOW=${cases.filter(c=>c.priority==='LOW').length}). LAWYERS: ${lawyers.length}. PENDING ESIGN: ${signatureRequests.filter(s=>s.status==='PENDING').length}. UPCOMING REMINDERS: ${reminders.filter(r=>r.status==='SCHEDULED').length}.`;
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        // Deterministic fallback
+        const m = (message || '').toLowerCase();
+        let reply = `Activity snapshot:\n${summary}\n\nRecent events:\n${recent.split('\n').slice(0,8).join('\n')}`;
+        if (m.includes('priority') || m.includes('urgent')) {
+          const high = cases.filter(c => c.priority === 'HIGH').map(c => `• ${c.id} - ${c.title} (next: ${c.nextAction})`).join('\n') || 'No HIGH priority cases.';
+          reply = `HIGH-priority cases requiring attention:\n${high}`;
+        } else if (m.includes('assign') || m.includes('lawyer')) {
+          const unassigned = cases.filter(c => !c.assignedLawyerId).map(c => `• ${c.id} - ${c.title} (${c.category})`).join('\n') || 'All cases are assigned.';
+          reply = `Unassigned cases:\n${unassigned}\n\nUse the Lawyer Assignment tab — I will recommend the best match by specialty + capacity + rating.`;
+        } else if (m.includes('remind')) {
+          reply = `${reminders.filter(r=>r.status==='SCHEDULED').length} reminders are scheduled. Open the Reminders tab to add more.`;
+        } else if (m.includes('sign') || m.includes('e-sign')) {
+          reply = `Pending signatures: ${signatureRequests.filter(s=>s.status==='PENDING').length}. Open the E-Signature tab to chase or send new requests.`;
+        }
+        return res.json({ text: reply, fallback: true });
+      }
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: `You are the Admin AI Agent for OROELU GODWIN AGIDI & CO. You have full read access to the firm's live activity stream and case data. Be concise, action-oriented, and reference IDs (e.g. CASE-1001) when relevant.
+
+Current firm snapshot:
+${summary}
+
+Recent activity stream (newest first):
+${recent}`
+      });
+
+      const result = await model.generateContent({
+        contents: [
+          ...(history || []).map((h: any) => ({ role: h.role, parts: h.parts })),
+          { role: 'user', parts: [{ text: message }] }
+        ]
+      });
+      res.json({ text: (await result.response).text() });
+    } catch (error) {
+      console.error("Admin AI chat error:", error);
+      res.status(500).json({ error: "AI processing failed" });
+    }
   });
 
   // AI Insights API

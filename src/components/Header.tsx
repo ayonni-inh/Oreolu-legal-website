@@ -18,7 +18,7 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
     { id: 'home', label: 'Home', roles: ['All'] },
     { id: 'blog', label: 'Blog', roles: ['All'] },
     { id: 'legal-research', label: 'Legal Research', roles: ['All'] },
-    { id: 'admin-panel', label: 'Admin Panel', roles: ['Admin'] },
+    { id: 'ai-center', label: 'AI Center', roles: ['Admin'] },
     { id: 'about-us', label: 'About Us', roles: ['All'] },
     { id: 'contact-us', label: 'Contact Us', roles: ['All'] },
   ];

@@ -9,6 +9,7 @@ import LegalResearch from './components/LegalResearch';
 import AboutUs from './components/AboutUs';
 import ContactUs from './components/ContactUs';
 import LegalDashboard from './components/LegalDashboard';
+import AdminAIPanel from './components/AdminAIPanel';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import WelcomeTour from './components/WelcomeTour';
@@ -68,8 +69,9 @@ export default function App() {
       case 'privacy-policy':
         return <PrivacyPolicy />;
       case 'admin-panel':
+      case 'ai-center':
         return currentUser?.appRole === 'Admin' ? (
-          <LegalDashboard user={currentUser} />
+          <AdminAIPanel user={currentUser} />
         ) : <Forbidden />;
       case 'staff-portal':
         return ['Admin', 'Staff'].includes(currentUser?.appRole) ? (
@@ -107,9 +109,9 @@ export default function App() {
     
     // Auto-navigate based on role if not a pending service
     if (!pendingService) {
-      if (userData?.appRole === 'Admin') setCurrentPage('admin-panel');
+      if (userData?.appRole === 'Admin') setCurrentPage('ai-center');
       else if (userData?.appRole === 'Staff') setCurrentPage('staff-portal');
-      else setCurrentPage('admin-panel');
+      else setCurrentPage('dashboard');
     } else {
       setSelectedService(pendingService);
       setPendingService(null);
