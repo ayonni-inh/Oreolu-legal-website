@@ -6,7 +6,16 @@ import path from "path";
 import { createClient } from '@supabase/supabase-js';
 
 // Gemini AI Setup
-const genAI: any = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+let genAI: any = null;
+try {
+  if (process.env.GEMINI_API_KEY) {
+    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  } else {
+    console.warn('GEMINI_API_KEY is not set. Gemini features will be disabled.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Gemini AI client:', error);
+}
 
 // Supabase Setup
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -104,7 +113,7 @@ const addLog = (action: string, admin: string, details: string) => {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 5000;
 
   app.use(express.json());
 
@@ -664,7 +673,7 @@ async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, allowedHosts: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
