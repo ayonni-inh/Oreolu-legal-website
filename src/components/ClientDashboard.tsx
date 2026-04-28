@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -13,14 +13,56 @@ import {
   User,
   Edit2,
   X,
-  Briefcase
+  Briefcase,
+  Bell,
+  Sparkles,
+  Plus,
+  Video,
+  ChevronRight,
+  TrendingUp,
+  Shield,
+  Lightbulb,
+  ChevronDown,
+  Camera,
+  Film,
+  Music,
+  Image as ImageIcon,
+  File
 } from 'lucide-react';
+import AIInsights from './AIInsights';
+import OnboardingTutorial from './OnboardingTutorial';
+import FeedbackModal from './FeedbackModal';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip as RechartsTooltip, 
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie
+} from 'recharts';
+import { motion, AnimatePresence } from 'motion/react';
+
+interface Notification {
+  id: string;
+  type: 'message' | 'case_update';
+  title: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+}
 
 interface ClientDashboardProps {
   user?: any;
+  onUpdateUser?: (data: any) => void;
+  onBookService?: (service: any) => void;
+  refreshTrigger?: number;
 }
 
-export default function ClientDashboard({ user }: ClientDashboardProps) {
+export default function ClientDashboard({ user, onUpdateUser, onBookService, refreshTrigger }: ClientDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,27 +74,166 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
     companyName: user?.companyName || 'Acme Corp',
     clientId: user?.clientId || '#88392',
     email: user?.email || 'jane@example.com',
-    phone: user?.phone || '+1 (555) 123-4567'
+    phone: user?.phone || '+1 (555) 123-4567',
+    appRole: user?.appRole || 'Client',
+    avatar: user?.avatar || null
   });
   
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [editFormData, setEditFormData] = useState(localUser);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    companyName: user?.companyName || ''
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const [userDocuments, setUserDocuments] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const res = await fetch(`/api/documents?userId=${localUser.clientId || 'client-1'}`);
+        if (res.ok) {
+          const data = await res.json();
+          setUserDocuments(Array.isArray(data) ? data : []);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchDocuments();
+  }, [localUser.clientId, refreshTrigger, isUploading]);
+  const [caseProgress, setCaseProgress] = useState<any>(null);
+
+  const handleDownload = (doc: any) => {
+    // For newly uploaded files with real data
+    if (doc.fileData) {
+      const url = URL.createObjectURL(doc.fileData);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      // For mock files, simulate a download
+      const content = `Mock content for ${doc.name}`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  useEffect(() => {
+    // Check if it's the first time the user is logging in (mocked)
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (!hasSeenTutorial) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
+  
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditFormData({ ...editFormData, avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [closureReason, setClosureReason] = useState('');
+  
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: '1',
+      type: 'case_update',
+      title: 'Case Milestone Reached',
+      message: 'Your trademark application for "AcmeFlow" has moved to Pending Review.',
+      time: '1 hour ago',
+      isRead: false
+    },
+    {
+      id: '2',
+      type: 'message',
+      title: 'New Message',
+      message: 'Sarah Jenkins sent you a new message regarding your incorporation.',
+      time: '2 hours ago',
+      isRead: true
+    }
+  ]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
+
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        setIsLoadingAppointments(true);
+        const response = await fetch(`/api/appointments?userId=${localUser.clientId || 'client-1'}`);
+        if (response.ok) {
+          const data = await response.json();
+          setAppointments(Array.isArray(data) ? data : []);
+        } else {
+          setAppointments([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch appointments:', error);
+        setAppointments([]);
+      } finally {
+        setIsLoadingAppointments(false);
+      }
+    };
+
+    if (activeTab === 'appointments' || activeTab === 'overview') {
+      fetchAppointments();
+    }
+  }, [activeTab, localUser.clientId, refreshTrigger]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        const res = await fetch(`/api/case-progress/${localUser.clientId || 'client-1'}`);
+        const data = await res.json();
+        setCaseProgress(data);
+      } catch (e) {
+        console.error("Error fetching progress", e);
+      }
+    };
+    fetchProgress();
+  }, [localUser.clientId, refreshTrigger]);
 
   // Mock Data
   const companyName = localUser.companyName;
   const clientName = `${localUser.firstName} ${localUser.lastName}`;
   const clientId = localUser.clientId;
-  const nextAppointment = {
-    service: "Corporate Incorporation",
-    date: "Oct 15, 2024",
-    time: "10:30 AM",
-    attorney: "Sarah Jenkins"
+  const nextAppointment = appointments.find(a => a.status === 'Upcoming' || a.status === 'Pending') || {
+    service_title: "No upcoming appointments",
+    appointment_date: "-",
+    appointment_time: "-",
   };
-
-  const appointments = [
-    { id: 1, service: "Corporate Incorporation", date: "Oct 15, 2024", time: "10:30 AM", status: "Upcoming", attorney: "Sarah Jenkins" },
-    { id: 2, service: "Initial Consultation", date: "Sep 28, 2024", time: "02:00 PM", status: "Completed", attorney: "Michael Ross" }
-  ];
 
   const payments = [
     { id: "INV-2024-001", date: "Oct 12, 2024", amount: "$1,200.00", service: "Corporate Incorporation", status: "Paid" },
@@ -90,18 +271,21 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
     }
   };
 
-  const documents = [
-    { id: 1, name: "Articles_of_Incorporation_Draft.pdf", date: "Oct 10, 2024", size: "2.4 MB", type: "PDF" },
-    { id: 2, name: "Client_Intake_Form_Signed.pdf", date: "Oct 01, 2024", size: "1.1 MB", type: "PDF" },
-    { id: 3, name: "Retainer_Agreement.docx", date: "Sep 28, 2024", size: "850 KB", type: "DOCX" }
-  ];
+  const getFileIcon = (type: string) => {
+    const t = type.toUpperCase();
+    if (['JPG', 'JPEG', 'PNG', 'GIF', 'WEBP'].includes(t)) return <ImageIcon className="w-5 h-5 text-purple-500" />;
+    if (['MP4', 'MOV', 'AVI', 'WMV'].includes(t)) return <Film className="w-5 h-5 text-red-500" />;
+    if (['MP3', 'WAV', 'OGG'].includes(t)) return <Music className="w-5 h-5 text-blue-500" />;
+    if (t === 'PDF') return <FileText className="w-5 h-5 text-red-600" />;
+    return <File className="w-5 h-5 text-gray-400" />;
+  };
 
   const messages = [
     { id: 1, sender: "Sarah Jenkins", role: "Attorney", time: "2 hours ago", text: "I've reviewed the initial draft of your Articles of Incorporation. Please check the Documents tab for the file." },
     { id: 2, sender: "You", role: "Client", time: "Yesterday", text: "Thank you, Sarah. I will review it shortly." }
   ];
 
-  const activeCases = [
+  const [activeCases, setActiveCases] = useState([
     {
       id: "CASE-2024-089",
       title: "Corporate Restructuring & Incorporation",
@@ -124,39 +308,155 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
       nextDate: "Nov 01, 2024",
       openedDate: "Oct 02, 2024"
     }
+  ]);
+
+  const handleCloseCase = (caseId: string) => {
+    setSelectedCaseId(caseId);
+    setClosureReason('');
+    setIsClosureModalOpen(true);
+  };
+
+  const confirmClosure = () => {
+    if (!closureReason.trim()) return;
+    
+    alert("Case closure request transmitted. As per Super Admin Protocol, this action requires manual verification by the Compliance Department.");
+    
+    // Set to pending closure instead of immediate close
+    setActiveCases(prev => prev.map(c => 
+      c.id === selectedCaseId ? { ...c, status: 'Pending Closure Approval' } : c
+    ));
+
+    // Add notification for case closure request
+    const closedCase = activeCases.find(c => c.id === selectedCaseId);
+    if (closedCase) {
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        type: 'case_update',
+        title: 'Closure Under Review',
+        message: `Your request to close case ${selectedCaseId} is currently pending Super Admin approval.`,
+        time: 'Just now',
+        isRead: false
+      };
+      setNotifications(prev => [newNotification, ...prev]);
+    }
+
+    setIsClosureModalOpen(false);
+    setSelectedCaseId(null);
+    setClosureReason('');
+  };
+
+  // Simulate incoming message notification
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const newMessageNotification: Notification = {
+        id: 'msg-' + Date.now(),
+        type: 'message',
+        title: 'New Message from Sarah',
+        message: 'Sarah Jenkins: "I have uploaded the final version of the agreement for your signature."',
+        time: 'Just now',
+        isRead: false
+      };
+      setNotifications(prev => [newMessageNotification, ...prev]);
+    }, 15000); // Trigger after 15 seconds for demo purposes
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadMessagesCount = notifications.filter(n => n.type === 'message' && !n.isRead).length;
+
+  // Chart Data
+  const billingData = [
+    { month: 'Jan', amount: 400 },
+    { month: 'Feb', amount: 300 },
+    { month: 'Mar', amount: 600 },
+    { month: 'Apr', amount: 800 },
+    { month: 'May', amount: 500 },
+    { month: 'Jun', amount: 900 },
+  ];
+
+  const completedCount = caseProgress?.milestones?.filter((m: any) => m.status === 'completed').length || 0;
+  const totalCount = caseProgress?.milestones?.length || 1;
+  const progressPercent = Math.round((completedCount / totalCount) * 100);
+
+  const caseProgressData = [
+    { name: 'Completed', value: progressPercent, color: '#0A192F' },
+    { name: 'Remaining', value: 100 - progressPercent, color: '#E5E7EB' },
   ];
 
   const handleFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      processFiles(Array.from(files));
+    }
+  };
+
+  const processFiles = async (files: File[]) => {
     if (isUploading) return;
     
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError(null);
     
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev === null) return 0;
-        
-        // Simulate random upload failure (5% chance after 50% progress)
-        if (prev > 50 && Math.random() > 0.95) {
-          clearInterval(interval);
-          setIsUploading(false);
-          setUploadProgress(null);
-          setUploadError("Upload failed: Connection lost. Please try again.");
-          return null;
-        }
+    // In a real app, this would use FormData to upload to bucket.
+    // Here we sync metadata with server first.
+    const file = files[0];
+    
+    try {
+      // Sync metadata to server
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: file.name,
+          userId: localUser.clientId || 'client-1',
+          size: file.size > 1024 * 1024 
+            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' 
+            : (file.size / 1024).toFixed(0) + ' KB',
+          type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
+          role: 'Client',
+          uploaderName: `${localUser.firstName} ${localUser.lastName}`
+        })
+      });
 
-        if (prev >= 100) {
+      if (!res.ok) throw new Error("Metadata sync failed");
+      const syncedDoc = await res.json();
+
+      let currentProgress = 0;
+      const interval = setInterval(() => {
+        currentProgress += Math.floor(Math.random() * 15) + 5;
+        
+        if (currentProgress >= 100) {
           clearInterval(interval);
+          setUploadProgress(100);
+          
           setTimeout(() => {
+            setUserDocuments(prev => [syncedDoc, ...prev]);
             setIsUploading(false);
             setUploadProgress(null);
-          }, 1000);
-          return 100;
+            alert("File synced and encrypted. Awaiting Super Admin verification.");
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }, 800);
+        } else {
+          setUploadProgress(currentProgress);
         }
-        return prev + Math.floor(Math.random() * 15) + 5;
-      });
-    }, 300);
+      }, 100);
+
+    } catch (e) {
+      console.error(e);
+      setUploadError("Could not synchronize with legal server.");
+      setIsUploading(false);
+    }
   };
 
   const renderContent = () => {
@@ -173,50 +473,274 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-navy">
-                    <Calendar className="w-6 h-6" />
+            {/* AI Insights Section */}
+            <AIInsights userData={{ ...localUser, activeCases: activeCases }} />
+
+            {/* Next Appointment Summary (if exists) */}
+            {appointments.some(a => a.status === 'Upcoming' || a.status === 'Pending') && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gold/30 p-6 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <Calendar className="w-24 h-24 text-gold" />
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${nextAppointment.status === 'Pending' ? 'bg-amber-100 text-amber-600' : 'bg-gold/10 text-gold'}`}>
+                    {nextAppointment.status === 'Pending' ? <AlertCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Next Appointment</p>
-                    <p className="font-bold text-navy">{nextAppointment.date}</p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Your Next Appointment</p>
+                      {nextAppointment.status === 'Pending' && (
+                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[8px] font-bold rounded uppercase tracking-tighter">Pending Confirmation</span>
+                      )}
+                    </div>
+                    <h4 className="font-serif text-lg font-bold text-navy truncate">
+                      {nextAppointment.service_title}
+                    </h4>
+                    <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                      <span className="font-semibold text-gold">{nextAppointment.appointment_date}</span> 
+                      <span>at</span>
+                      <span className="font-semibold text-gold">{nextAppointment.appointment_time}</span>
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('appointments')}
+                    className="bg-navy text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-light transition-colors"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions Bento Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <button 
+                onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
+                className="md:col-span-2 bg-navy text-white p-6 rounded-2xl flex flex-col justify-between hover:bg-navy-light transition-all group relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-24 h-24" />
+                </div>
+                <div>
+                  <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
+                    <Calendar className="w-5 h-5 text-gold" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-1">Schedule Consultation</h3>
+                  <p className="text-white/60 text-sm">Book a 30-min session with your lead attorney.</p>
+                </div>
+                <div className="mt-4 flex items-center gap-2 text-gold text-sm font-bold">
+                  Book Now <ChevronDown className="w-4 h-4 -rotate-90" />
+                </div>
+              </button>
+
+              <button 
+                onClick={() => setActiveTab('documents')}
+                className="bg-white border border-gray-200 p-6 rounded-2xl flex flex-col justify-between hover:border-gold transition-all group"
+              >
+                <div>
+                  <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center mb-4">
+                    <Upload className="w-5 h-5 text-gold" />
+                  </div>
+                  <h3 className="text-lg font-bold text-navy mb-1">Upload Docs</h3>
+                  <p className="text-gray-500 text-xs">Securely send new files to your legal team.</p>
+                </div>
+                <div className="mt-4 text-navy font-bold text-xs uppercase tracking-wider group-hover:text-gold transition-colors">
+                  Quick Upload
+                </div>
+              </button>
+
+              <button 
+                onClick={() => setIsFeedbackOpen(true)}
+                className="bg-gold/5 border border-gold/20 p-6 rounded-2xl flex flex-col justify-between hover:bg-gold/10 transition-all group"
+              >
+                <div>
+                  <div className="w-10 h-10 bg-gold/20 rounded-lg flex items-center justify-center mb-4">
+                    <MessageSquare className="w-5 h-5 text-gold" />
+                  </div>
+                  <h3 className="text-lg font-bold text-navy mb-1">Feedback</h3>
+                  <p className="text-gray-500 text-xs">Help us improve your experience.</p>
+                </div>
+                <div className="mt-4 text-gold font-bold text-xs uppercase tracking-wider">
+                  Rate Portal
+                </div>
+              </button>
+            </div>
+
+            {/* Personalized Recommendations */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-serif text-xl font-bold text-navy">Recommended for You</h3>
+                <button className="text-sm font-semibold text-navy hover:text-gold transition-colors">Explore All</button>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[
+                  {
+                    title: "2025 Regulatory Outlook",
+                    category: "Compliance",
+                    readTime: "5 min read",
+                    image: "https://picsum.photos/seed/legal1/400/200"
+                  },
+                  {
+                    title: "IP Protection Strategies",
+                    category: "Intellectual Property",
+                    readTime: "8 min read",
+                    image: "https://picsum.photos/seed/legal2/400/200"
+                  },
+                  {
+                    title: "Arbitration vs Litigation",
+                    category: "Dispute Resolution",
+                    readTime: "6 min read",
+                    image: "https://picsum.photos/seed/legal3/400/200"
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className="group cursor-pointer">
+                    <div className="relative h-40 rounded-xl overflow-hidden mb-3">
+                      <img 
+                        src={item.image} 
+                        alt={item.title} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-navy uppercase tracking-wider">
+                        {item.category}
+                      </div>
+                    </div>
+                    <h4 className="font-bold text-navy group-hover:text-gold transition-colors line-clamp-1">{item.title}</h4>
+                    <p className="text-xs text-gray-500 mt-1">{item.readTime}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Analytics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-serif text-xl font-bold text-navy">Billing Overview</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 bg-navy rounded-full"></span>
+                    <span className="text-xs text-gray-500 font-medium">Monthly Spend ($)</span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 border-t border-gray-100 pt-3">
-                  {nextAppointment.time} with {nextAppointment.attorney}
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={billingData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis 
+                        dataKey="month" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+                      />
+                      <RechartsTooltip 
+                        cursor={{ fill: '#f9fafb' }}
+                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      />
+                      <Bar dataKey="amount" fill="#0A192F" radius={[4, 4, 0, 0]} barSize={40}>
+                        {billingData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index === billingData.length - 1 ? '#C5A059' : '#0A192F'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center text-gold">
-                    <AlertCircle className="w-6 h-6" />
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col">
+                <h3 className="font-serif text-xl font-bold text-navy mb-6">Case Progress</h3>
+                <div className="flex-1 flex flex-col items-center justify-center relative">
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={caseProgressData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {caseProgressData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Action Required</p>
-                    <p className="font-bold text-navy">1 Document</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-3xl font-bold text-navy">{progressPercent}%</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Overall</span>
                   </div>
-                </div>
-                <div className="text-sm text-gray-600 border-t border-gray-100 pt-3">
-                  Please sign: Retainer Agreement
+                  <div className="mt-4 w-full space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-navy"></div>
+                        <span className="text-gray-600">Completed Steps</span>
+                      </div>
+                      <span className="font-bold text-navy">{completedCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-200"></div>
+                        <span className="text-gray-600">Pending Steps</span>
+                      </div>
+                      <span className="font-bold text-navy">8</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center text-green-600">
-                    <CreditCard className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 font-medium">Total Billed</p>
-                    <p className="font-bold text-navy">$1,450.00</p>
-                  </div>
+            {/* Case Timeline */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-navy">Case Timeline</h3>
+                  <p className="text-sm text-gray-500">Corporate Restructuring & Incorporation</p>
                 </div>
-                <div className="text-sm text-gray-600 border-t border-gray-100 pt-3">
-                  All invoices paid
+                <span className="px-3 py-1 bg-navy/5 text-navy text-[10px] font-bold uppercase tracking-widest rounded-full">
+                  Phase 3 of 5
+                </span>
+              </div>
+              
+              <div className="relative">
+                {/* Timeline Line */}
+                <div className="absolute top-5 left-0 w-full h-0.5 bg-gray-100"></div>
+                
+                <div className="relative flex justify-between">
+                  {[
+                    { label: 'Intake', date: 'Sep 10', status: 'completed' },
+                    { label: 'Discovery', date: 'Sep 25', status: 'completed' },
+                    { label: 'Drafting', date: 'Oct 15', status: 'active' },
+                    { label: 'Review', date: 'Oct 30', status: 'pending' },
+                    { label: 'Filing', date: 'Nov 10', status: 'pending' },
+                  ].map((step, idx) => (
+                    <div key={idx} className="flex flex-col items-center relative z-10">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-all duration-500 ${
+                        step.status === 'completed' ? 'bg-navy text-white' : 
+                        step.status === 'active' ? 'bg-gold text-white scale-110 shadow-gold/20' : 
+                        'bg-gray-100 text-gray-400'
+                      }`}>
+                        {step.status === 'completed' ? (
+                          <CheckCircle2 className="w-5 h-5" />
+                        ) : (
+                          <span className="text-xs font-bold">{idx + 1}</span>
+                        )}
+                      </div>
+                      <div className="mt-3 text-center">
+                        <p className={`text-xs font-bold uppercase tracking-wider ${step.status === 'active' ? 'text-navy' : 'text-gray-400'}`}>
+                          {step.label}
+                        </p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{step.date}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -246,28 +770,38 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                  </button>
                </div>
 
-               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                 <h3 className="font-serif text-xl font-bold text-navy mb-4">Recent Documents</h3>
-                 <div className="space-y-3">
-                   {documents.slice(0, 3).map(doc => (
-                     <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
-                       <div className="flex items-center gap-3">
-                         <FileText className="w-5 h-5 text-gray-400" />
-                         <div>
-                           <p className="text-sm font-medium text-navy truncate max-w-[180px]">{doc.name}</p>
-                           <p className="text-xs text-gray-500">{doc.date} • {doc.size}</p>
-                         </div>
-                       </div>
-                       <button className="text-gray-400 hover:text-navy">
-                         <Download className="w-4 h-4" />
-                       </button>
-                     </div>
-                   ))}
-                 </div>
-                 <button onClick={() => setActiveTab('documents')} className="w-full mt-4 text-center text-sm font-semibold text-navy hover:text-gold transition-colors">
-                   Manage Documents
-                 </button>
-               </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="font-serif text-xl font-bold text-navy mb-4">Recent Documents</h3>
+                  <div className="space-y-3">
+                    {userDocuments.slice(0, 3).map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors border border-gray-100">
+                        <div className="flex items-center gap-3">
+                          {getFileIcon(doc.type)}
+                          <div>
+                            <p className="text-sm font-medium text-navy truncate max-w-[180px]">{doc.name}</p>
+                            <div className="flex items-center gap-2">
+                               <p className="text-xs text-gray-500">{doc.date} • {doc.size}</p>
+                               {doc.status === 'PENDING_ADMIN_APPROVAL' && (
+                                 <span className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 rounded border border-amber-100 flex items-center gap-0.5">
+                                   <Clock className="w-2 h-2" /> PENDING
+                                 </span>
+                               )}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleDownload(doc)}
+                          className="text-gray-400 hover:text-navy transition-colors"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setActiveTab('documents')} className="w-full mt-4 text-center text-sm font-semibold text-navy hover:text-gold transition-colors">
+                    View All Documents
+                  </button>
+                </div>
             </div>
           </div>
         );
@@ -292,44 +826,80 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                         <User className="w-4 h-4" /> Lead Attorney: <span className="font-medium text-navy">{c.attorney}</span>
                       </p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex flex-col items-end gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold ${
                         c.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
                         c.status === 'Pending Review' ? 'bg-yellow-100 text-yellow-700' :
+                        c.status === 'Closed' ? 'bg-green-100 text-green-700' :
                         'bg-gray-100 text-gray-700'
                       }`}>
                         {c.status === 'In Progress' && <Clock className="w-4 h-4" />}
                         {c.status === 'Pending Review' && <AlertCircle className="w-4 h-4" />}
+                        {c.status === 'Closed' && <CheckCircle2 className="w-4 h-4" />}
                         {c.status}
                       </span>
-                      <p className="text-xs text-gray-400 mt-2">Opened: {c.openedDate}</p>
+                      {c.status !== 'Closed' && ['Admin', 'Staff'].includes(localUser.appRole) && (
+                        <button 
+                          onClick={() => handleCloseCase(c.id)}
+                          className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline transition-colors"
+                        >
+                          Close Case
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-                    <div className="flex justify-between items-end mb-2">
-                      <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Next Key Step</p>
-                        <p className="text-sm font-medium text-navy">{c.nextStep}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div className="md:col-span-2 space-y-4">
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-gold/10 rounded-lg flex items-center justify-center text-gold shrink-0">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Next Key Step</p>
+                            <p className="text-sm font-bold text-navy leading-tight">{c.nextStep}</p>
+                            <p className="text-xs text-gray-500 mt-1">Target: <span className="text-gold font-semibold">{c.nextDate}</span></p>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Target Date</p>
-                        <p className="text-sm font-bold text-gold">{c.nextDate}</p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Opened Date</p>
+                          <div className="flex items-center gap-2 text-navy">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-sm font-semibold">{c.openedDate}</span>
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Lead Attorney</p>
+                          <div className="flex items-center gap-2 text-navy">
+                            <User className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-sm font-semibold">{c.attorney}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="mt-4">
-                      <div className="flex justify-between text-xs font-medium text-gray-500 mb-1.5">
-                        <span>Overall Progress</span>
-                        <span>{c.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-                        <div 
-                          className="bg-navy h-2 rounded-full transition-all duration-1000 ease-out relative" 
-                          style={{ width: `${c.progress}%` }}
-                        >
-                          <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem' }}></div>
+
+                    <div className="bg-navy text-white rounded-xl p-5 flex flex-col justify-between shadow-lg relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#C5A059 1px, transparent 1px)', backgroundSize: '12px 12px' }}></div>
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-center mb-4">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Progress</span>
+                          <span className="text-lg font-serif font-bold text-gold">{c.progress}%</span>
                         </div>
+                        <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden mb-4">
+                          <div 
+                            className="bg-gold h-2 rounded-full transition-all duration-1000 ease-out relative" 
+                            style={{ width: `${c.progress}%` }}
+                          >
+                            <div className="absolute inset-0 bg-white/20" style={{ backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem' }}></div>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-gray-400 leading-relaxed">
+                          {c.status === 'Closed' ? 'This matter has been successfully concluded.' : 'Your legal team is actively working on the next milestone.'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -341,36 +911,131 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
       case 'appointments':
         return (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-serif text-xl font-bold text-navy">My Appointments</h3>
-              <button className="bg-navy hover:bg-navy-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                Book New Service
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-6 border-b border-gray-100 gap-4">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-navy">Appointment History</h3>
+                <p className="text-sm text-gray-500">Manage your upcoming and past consultations</p>
+              </div>
+              <button 
+                onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
+                className="bg-gold hover:bg-gold-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 w-fit"
+              >
+                <Plus className="w-4 h-4" /> Book Consultation
               </button>
             </div>
             <div className="divide-y divide-gray-100">
-              {appointments.map(apt => (
-                <div key={apt.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {isLoadingAppointments ? (
+                <div className="p-12 text-center text-gray-500">
+                  <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="font-medium">Retrieving your appointments...</p>
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="p-16 text-center">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Calendar className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <h4 className="text-lg font-bold text-navy mb-2">No Appointments Yet</h4>
+                  <p className="text-gray-500 max-w-xs mx-auto mb-8">
+                    You haven't booked any legal consultations or services yet.
+                  </p>
+                  <button 
+                    onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
+                    className="bg-navy text-white px-6 py-2.5 rounded-lg hover:bg-navy-light transition-colors font-medium inline-flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" /> Book Your First Consultation
+                  </button>
+                </div>
+              ) : appointments.map(apt => (
+                <div key={apt.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group/item hover:bg-gray-50/50 transition-colors">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                      <Calendar className="w-6 h-6" />
+                    <div className="relative group-hover/item:scale-105 transition-transform">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-sm border ${
+                        apt.status === 'Upcoming' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                        (apt.status === 'Pending' || apt.status === 'PENDING_VERIFICATION') ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                        'bg-gray-50 text-gray-400 border-gray-100'
+                      }`}>
+                        <Calendar className="w-7 h-7" />
+                      </div>
+                      {apt.status === 'Upcoming' && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 border-2 border-white rounded-full animate-pulse shadow-sm"></div>
+                      )}
                     </div>
                     <div>
-                      <h4 className="font-bold text-navy">{apt.service}</h4>
-                      <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                        <Clock className="w-4 h-4" /> {apt.date} at {apt.time}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-1">with {apt.attorney}</p>
+                      <h4 className="font-bold text-navy text-xl group-hover/item:text-gold transition-colors">{apt.service_title || apt.service}</h4>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-gray-600">
+                          <Clock className="w-4 h-4 text-gold" />
+                          <span>{apt.appointment_date || apt.date}</span>
+                          <span className="text-gray-300">•</span>
+                          <span>{apt.appointment_time || apt.time}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                          <User className="w-4 h-4 text-gray-400" />
+                          <span>{apt.attorney || 'Assigned Attorney'}</span>
+                        </div>
+                        {apt.tracking_number && (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-100 rounded text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider">
+                            ID: {apt.tracking_number}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {apt.status === 'Upcoming' && (
+                        <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white shadow-sm">
+                            <Video className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">Meeting Link</p>
+                            <a href="#" className="text-xs font-bold text-blue-600 hover:underline">Click here to join meeting at {apt.appointment_time}</a>
+                          </div>
+                        </div>
+                      )}
+
+                      {(apt.status === 'Pending' || apt.status === 'PENDING_VERIFICATION') && (
+                        <div className="mt-4 p-3 bg-amber-50/50 border border-amber-100 rounded-xl flex items-center gap-3">
+                          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-white shadow-sm">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-bold text-amber-400 tracking-widest">In Review</p>
+                            <p className="text-xs font-bold text-amber-600">Administrator is verifying your payment and identity</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      apt.status === 'Upcoming' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      {apt.status}
-                    </span>
-                    {apt.status === 'Upcoming' && (
-                      <button className="text-sm text-navy font-medium hover:underline">Reschedule</button>
-                    )}
+                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-4">
+                    <div className="text-left md:text-right">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1.5">Current Status</p>
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+                        apt.status === 'Upcoming' ? 'bg-blue-100 text-blue-700' : 
+                        apt.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
+                        (apt.status === 'Pending' || apt.status === 'PENDING_VERIFICATION') ? 'bg-amber-100 text-amber-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {apt.status === 'Upcoming' ? <Clock className="w-3.5 h-3.5" /> : 
+                         (apt.status === 'Pending' || apt.status === 'PENDING_VERIFICATION') ? <AlertCircle className="w-3.5 h-3.5" /> :
+                         apt.status === 'Completed' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
+                         <X className="w-3.5 h-3.5" />}
+                        {apt.status === 'PENDING_VERIFICATION' ? 'Pending Review' : apt.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {(apt.status === 'Upcoming' || apt.status === 'Pending') && (
+                        <div className="flex items-center gap-1">
+                          <button className="p-2.5 text-gray-400 hover:text-navy hover:bg-white rounded-xl border border-transparent hover:border-gray-200 transition-all shadow-sm flex items-center justify-center" title="Reschedule">
+                            <Edit2 className="w-4.5 h-4.5" />
+                          </button>
+                          <button className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl border border-transparent hover:border-red-100 transition-all shadow-sm flex items-center justify-center" title="Cancel Appointment">
+                            <X className="w-4.5 h-4.5" />
+                          </button>
+                        </div>
+                      )}
+                      <button className="bg-navy hover:bg-navy-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 flex items-center gap-2">
+                        View Details <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -382,7 +1047,18 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h3 className="font-serif text-xl font-bold text-navy">Secure Documents</h3>
-              <button className="flex items-center gap-2 bg-gold hover:bg-gold-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                multiple 
+                className="hidden" 
+                accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.mp4,.mp3,.wav,.mov,.avi"
+              />
+              <button 
+                onClick={handleFileUpload}
+                className="flex items-center gap-2 bg-gold hover:bg-gold-hover text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
                 <Upload className="w-4 h-4" /> Upload File
               </button>
             </div>
@@ -396,7 +1072,16 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
               
               <div 
                 onClick={handleFileUpload}
-                className={`border-2 border-dashed rounded-xl p-8 text-center mb-8 transition-colors cursor-pointer ${
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-gold/10'); }}
+                onDragLeave={(e) => { e.preventDefault(); e.currentTarget.classList.remove('bg-gold/10'); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('bg-gold/10');
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processFiles(Array.from(e.dataTransfer.files));
+                  }
+                }}
+                className={`border-2 border-dashed rounded-xl p-8 text-center mb-8 transition-all cursor-pointer ${
                   isUploading ? 'border-gold bg-gold/5' : 'border-gray-300 hover:bg-gray-50'
                 }`}
               >
@@ -417,18 +1102,18 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                   <>
                     <Upload className="w-10 h-10 text-gray-400 mx-auto mb-4" />
                     <p className="text-navy font-medium">Drag and drop files here, or click to browse</p>
-                    <p className="text-sm text-gray-500 mt-1">Supports PDF, DOCX, JPG (Max 10MB)</p>
+                    <p className="text-sm text-gray-500 mt-1">Supports PDF, Photos, Videos, and Audio (Max 50MB)</p>
                   </>
                 )}
               </div>
 
               <h4 className="font-semibold text-navy mb-4">File Library</h4>
               <div className="space-y-2">
-                {documents.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-gold/30 transition-colors">
+                {userDocuments.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100 hover:border-gold/30 transition-colors group">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-navy shadow-sm border border-gray-100">
-                        <FileText className="w-5 h-5" />
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-navy shadow-sm border border-gray-100 group-hover:scale-110 transition-transform">
+                        {getFileIcon(doc.type)}
                       </div>
                       <div>
                         <p className="font-medium text-navy">{doc.name}</p>
@@ -436,8 +1121,12 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button className="p-2 text-gray-400 hover:text-navy transition-colors" title="Download">
-                        <Download className="w-5 h-5" />
+                      <button 
+                        onClick={() => handleDownload(doc)}
+                        className="p-2 text-gray-400 hover:text-navy transition-colors group/dl" 
+                        title="Download"
+                      >
+                        <Download className="w-5 h-5 group-hover/dl:scale-110 transition-transform" />
                       </button>
                     </div>
                   </div>
@@ -447,6 +1136,15 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           </div>
         );
       case 'billing':
+        if (!['Admin', 'Staff'].includes(localUser.appRole)) {
+          return (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center animate-in fade-in duration-300">
+              <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-serif font-bold text-navy mb-2">Restricted Access</h3>
+              <p className="text-gray-500 max-w-md mx-auto">Only authorized firm personnel can access detailed billing and payment records. Please contact the billing department for assistance.</p>
+            </div>
+          );
+        }
         return (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
             <div className="p-6 border-b border-gray-200">
@@ -525,6 +1223,109 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
             </div>
           </div>
         );
+      case 'profile':
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="font-serif text-xl font-bold text-navy">My Profile</h3>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
+                  className="bg-gold hover:bg-gold-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Calendar className="w-4 h-4" /> Book Service
+                </button>
+                <button 
+                  onClick={() => {
+                    setEditFormData(localUser);
+                    setIsEditProfileOpen(true);
+                  }}
+                  className="bg-navy hover:bg-navy-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <Edit2 className="w-4 h-4" /> Edit Profile
+                </button>
+              </div>
+            </div>
+            <div className="p-8">
+              <div className="flex flex-col md:flex-row gap-8 items-start">
+                <div 
+                  className="w-32 h-32 bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden border-4 border-white shadow-lg shrink-0 relative group cursor-pointer"
+                  onClick={() => setIsEditProfileOpen(true)}
+                >
+                  {localUser.avatar ? (
+                    <img src={localUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-12 h-12 text-gray-400" />
+                  )}
+                  <div className="absolute inset-0 bg-navy/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="text-white w-8 h-8" />
+                  </div>
+                </div>
+                <div className="flex-1 w-full">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Full Name</p>
+                      <p className="font-medium text-navy text-lg">{localUser.firstName} {localUser.lastName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Company Name</p>
+                      <p className="font-medium text-navy text-lg">{localUser.companyName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Email Address</p>
+                      <p className="font-medium text-navy text-lg">{localUser.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Phone Number</p>
+                      <p className="font-medium text-navy text-lg">{localUser.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Client ID</p>
+                      <p className="font-medium text-navy text-lg">{localUser.clientId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Account Role</p>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-700 mt-1">
+                        {localUser.appRole}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'management':
+        if (localUser.appRole !== 'Admin') return null;
+        return (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="font-serif text-xl font-bold text-navy">Firm Management</h3>
+              <p className="text-sm text-gray-500">Administrative tools for managing staff, clients, and firm-wide settings.</p>
+            </div>
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 bg-navy/5 rounded-full flex items-center justify-center mx-auto mb-4 text-navy">
+                <Shield className="w-8 h-8" />
+              </div>
+              <h4 className="text-lg font-bold text-navy mb-2">Admin Dashboard Active</h4>
+              <p className="text-gray-500 mb-8">You are currently logged in with full administrative privileges.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                  <p className="text-2xl font-bold text-navy">42</p>
+                  <p className="text-xs text-gray-500 uppercase font-bold">Total Clients</p>
+                </div>
+                <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                  <p className="text-2xl font-bold text-navy">8</p>
+                  <p className="text-xs text-gray-500 uppercase font-bold">Staff Members</p>
+                </div>
+                <div className="p-4 border border-gray-100 rounded-xl bg-gray-50">
+                  <p className="text-2xl font-bold text-navy">$124k</p>
+                  <p className="text-xs text-gray-500 uppercase font-bold">Annual Revenue</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -533,9 +1334,99 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-navy text-white pb-24 pt-10 px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="font-serif text-3xl font-bold">Client Dashboard</h1>
-          <p className="text-gray-300 mt-2">Manage your legal affairs securely.</p>
+        <div className="max-w-7xl mx-auto flex justify-between items-start">
+          <div>
+            <h1 className="font-serif text-3xl font-bold">Client Dashboard</h1>
+            <p className="text-gray-300 mt-2">Manage your legal affairs securely.</p>
+          </div>
+          
+          {/* Notification Bell */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors relative group"
+              title="Notifications"
+            >
+              <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'animate-pulse text-gold' : 'text-gray-300'}`} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-navy">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {showNotifications && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowNotifications(false)}
+                ></div>
+                <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <h3 className="font-bold text-navy">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={markAllAsRead}
+                        className="text-xs font-semibold text-gold hover:text-gold-hover transition-colors"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    {notifications.length > 0 ? (
+                      <div className="divide-y divide-gray-50">
+                        {notifications.map(n => (
+                          <div 
+                            key={n.id} 
+                            className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!n.isRead ? 'bg-blue-50/30' : ''}`}
+                            onClick={() => {
+                              setNotifications(prev => prev.map(notif => notif.id === n.id ? { ...notif, isRead: true } : notif));
+                              if (n.type === 'message') setActiveTab('messages');
+                              if (n.type === 'case_update') setActiveTab('cases');
+                              setShowNotifications(false);
+                            }}
+                          >
+                            <div className="flex gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                n.type === 'message' ? 'bg-blue-100 text-blue-600' : 'bg-gold/10 text-gold'
+                              }`}>
+                                {n.type === 'message' ? <MessageSquare className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-0.5">
+                                  <p className={`text-sm font-bold truncate ${!n.isRead ? 'text-navy' : 'text-gray-600'}`}>{n.title}</p>
+                                  <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">{n.time}</span>
+                                </div>
+                                <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{n.message}</p>
+                              </div>
+                              {!n.isRead && (
+                                <div className="w-2 h-2 bg-gold rounded-full shrink-0 mt-1.5"></div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <Bell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500">No new notifications</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3 bg-gray-50 border-t border-gray-100 text-center">
+                    <button 
+                      onClick={() => setShowNotifications(false)}
+                      className="text-xs font-bold text-navy hover:text-gold transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -546,47 +1437,76 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-24">
               <div className="p-6 border-b border-gray-100 relative">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-navy rounded-full flex items-center justify-center text-white shrink-0">
-                    <User className="w-5 h-5" />
+                  <div className="w-10 h-10 bg-navy rounded-full flex items-center justify-center text-white shrink-0 overflow-hidden" aria-hidden="true">
+                    {localUser.avatar ? (
+                      <img src={localUser.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-navy text-sm truncate">{companyName}</p>
-                    <p className="text-xs text-gray-500 truncate">Client ID: {clientId}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" aria-hidden="true"></div>
+                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{localUser.appRole} Access</p>
+                    </div>
                   </div>
                   <button 
                     onClick={() => {
                       setEditFormData(localUser);
                       setIsEditProfileOpen(true);
                     }}
-                    className="p-2 text-gray-400 hover:text-navy transition-colors shrink-0"
-                    title="Edit Profile"
+                    className="p-2 text-gray-400 hover:text-navy transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-navy rounded-lg outline-none"
+                    aria-label="Edit Profile"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-4 h-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>
-              <nav className="p-2">
+              <nav className="p-2" aria-label="Dashboard Navigation">
                 {[
-                  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-                  { id: 'cases', label: 'Case Status', icon: Briefcase },
-                  { id: 'appointments', label: 'Appointments', icon: Calendar },
-                  { id: 'documents', label: 'Documents', icon: FileText },
-                  { id: 'billing', label: 'Billing & Payments', icon: CreditCard },
-                  { id: 'messages', label: 'Messages', icon: MessageSquare },
-                ].map(item => (
+                  { id: 'overview', label: 'Overview', icon: LayoutDashboard, roles: ['All'] },
+                  { id: 'cases', label: 'Case Status', icon: Briefcase, roles: ['All'] },
+                  { id: 'appointments', label: 'Appointments', icon: Calendar, roles: ['All'] },
+                  { id: 'documents', label: 'Documents', icon: FileText, roles: ['All'] },
+                  { id: 'billing', label: 'Billing & Payments', icon: CreditCard, roles: ['Admin', 'Staff'] },
+                  { id: 'messages', label: 'Messages', icon: MessageSquare, roles: ['All'] },
+                  { id: 'profile', label: 'My Profile', icon: User, roles: ['All'] },
+                  { id: 'management', label: 'Firm Management', icon: Shield, roles: ['Admin'] },
+                ].filter(item => item.roles.includes('All') || item.roles.includes(localUser.appRole)).map(item => (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (item.id === 'messages') {
+                        setNotifications(prev => prev.map(n => n.type === 'message' ? { ...n, isRead: true } : n));
+                      }
+                    }}
+                    aria-current={activeTab === item.id ? 'page' : undefined}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-inset ${
                       activeTab === item.id 
                         ? 'bg-navy text-white' 
                         : 'text-gray-600 hover:bg-gray-50 hover:text-navy'
                     }`}
                   >
-                    <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-gold' : 'text-gray-400'}`} />
-                    {item.label}
+                    <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-gold' : 'text-gray-400'}`} aria-hidden="true" />
+                    <span className="flex-1 text-left">{item.label}</span>
+                    {item.id === 'messages' && unreadMessagesCount > 0 && (
+                      <span className="w-5 h-5 bg-gold text-white text-[10px] font-bold rounded-full flex items-center justify-center" aria-label={`${unreadMessagesCount} unread messages`}>
+                        {unreadMessagesCount}
+                      </span>
+                    )}
                   </button>
                 ))}
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <button 
+                    onClick={() => setIsFeedbackOpen(true)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-500 hover:bg-gold/10 hover:text-gold transition-all"
+                  >
+                    <MessageSquare className="w-5 h-5 text-gray-400" />
+                    Give Feedback
+                  </button>
+                </div>
               </nav>
             </div>
           </div>
@@ -597,6 +1517,12 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Onboarding Tutorial */}
+      {showOnboarding && <OnboardingTutorial onClose={handleCloseOnboarding} />}
+
+      {/* Feedback Modal */}
+      <FeedbackModal isOpen={isFeedbackOpen} onClose={() => setIsFeedbackOpen(false)} />
 
       {/* Edit Profile Modal */}
       {isEditProfileOpen && (
@@ -609,11 +1535,44 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
-              setLocalUser(editFormData);
-              setIsEditProfileOpen(false);
+              setIsSavingProfile(true);
+              try {
+                const res = await fetch(`/api/users/${user.id}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(editFormData)
+                });
+                if (res.ok) {
+                  const updatedUser = await res.json();
+                  setLocalUser(updatedUser);
+                  onUpdateUser?.(updatedUser);
+                  setIsEditProfileOpen(false);
+                  alert("Legal profile updated and synchronized with firm records.");
+                }
+              } catch (error) {
+                console.error("Profile update failed:", error);
+              } finally {
+                setIsSavingProfile(false);
+              }
             }} className="p-6 space-y-4">
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative group">
+                  <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-gray-200">
+                    {editFormData.avatar ? (
+                      <img src={editFormData.avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-10 h-10 text-gray-400" />
+                    )}
+                  </div>
+                  <label className="absolute bottom-0 right-0 bg-gold text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-gold-hover transition-colors">
+                    <Camera className="w-4 h-4" />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Click the camera icon to upload a profile picture</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
@@ -682,6 +1641,61 @@ export default function ClientDashboard({ user }: ClientDashboardProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Case Closure Confirmation Modal */}
+      {isClosureModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="bg-red-600 text-white p-6 flex justify-between items-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
+              <h3 className="font-serif text-xl font-bold relative z-10">Confirm Case Closure</h3>
+              <button onClick={() => setIsClosureModalOpen(false)} className="text-white/80 hover:text-white relative z-10 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-red-50 rounded-xl border border-red-100">
+                <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-red-900 text-sm">Are you sure you want to close this case?</h4>
+                  <p className="text-red-700 text-xs mt-1">This action will mark the case as complete. You will still be able to view it in your history.</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reason for closure <span className="text-red-500">*</span></label>
+                <textarea 
+                  value={closureReason}
+                  onChange={e => setClosureReason(e.target.value)}
+                  placeholder="Please provide a brief reason for closing this case..."
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all min-h-[100px] resize-none"
+                  required
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                <button 
+                  type="button" 
+                  onClick={() => setIsClosureModalOpen(false)} 
+                  className="px-4 py-2 text-gray-600 hover:text-navy font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={confirmClosure}
+                  disabled={!closureReason.trim()}
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                    closureReason.trim() 
+                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-md' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Confirm Closure
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

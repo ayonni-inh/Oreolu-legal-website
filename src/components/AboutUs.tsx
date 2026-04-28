@@ -12,10 +12,10 @@ export default function AboutUs() {
   ];
 
   const team = [
+    { name: "Dr. Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Law, Arbitration & Risk Management" },
     { name: "Sarah Jenkins", role: "Managing Partner", specialization: "Corporate Law" },
     { name: "Michael Ross", role: "Senior Partner", specialization: "Litigation" },
-    { name: "David Chen", role: "Partner", specialization: "Intellectual Property" },
-    { name: "Elena Rodriguez", role: "Associate", specialization: "Family Law" }
+    { name: "David Chen", role: "Partner", specialization: "Intellectual Property" }
   ];
 
   const editorialTeam = [
@@ -26,7 +26,7 @@ export default function AboutUs() {
 
   const testimonials = [
     {
-      quote: "O.G. Agidi & Co provided exceptional guidance during our corporate restructuring. Their attention to detail and strategic foresight saved us countless hours and mitigated significant risks.",
+      quote: "OROELU GODWIN AGIDI & CO provided exceptional guidance during our corporate restructuring. Their attention to detail and strategic foresight saved us countless hours and mitigated significant risks.",
       name: "Sarah Jenkins",
       title: "CEO, TechFlow Solutions"
     },
@@ -36,7 +36,7 @@ export default function AboutUs() {
       title: "Director, Global Logistics Inc."
     },
     {
-      quote: "Having O.G. Agidi & Co as our legal partner has been invaluable. Their prompt responses and deep understanding of intellectual property law have been crucial to our growth.",
+      quote: "Having OROELU GODWIN AGIDI & CO as our legal partner has been invaluable. Their prompt responses and deep understanding of intellectual property law have been crucial to our growth.",
       name: "Elena Rodriguez",
       title: "Founder, InnovateX"
     },
@@ -73,12 +73,12 @@ export default function AboutUs() {
         <div className="text-center max-w-3xl mx-auto">
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-navy mb-6">Defending Rights, Defining Excellence.</h1>
           <p className="text-gray-600 font-sans text-lg leading-relaxed">
-            Founded on the principles of integrity and unwavering advocacy, O.G. Agidi & Co has grown into a premier law firm serving clients globally. We combine traditional legal expertise with modern efficiency.
+            Founded on the principles of integrity and unwavering advocacy, OROELU GODWIN AGIDI & CO has grown into a premier law firm serving clients globally. We combine traditional legal expertise with modern efficiency.
           </p>
         </div>
       </div>
 
-      {/* O.G. Agidi & Co Section */}
+      {/* OROELU GODWIN AGIDI & CO Section */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-20">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12 flex flex-col md:flex-row gap-12 items-center">
            <div className="flex-1">
@@ -86,21 +86,97 @@ export default function AboutUs() {
                <Building2 className="w-6 h-6 text-gold" />
                <span className="text-sm font-bold text-gold uppercase tracking-wider">The Firm</span>
              </div>
-             <h2 className="font-serif text-3xl font-bold text-navy mb-6">O.G. Agidi & Co</h2>
+             <h2 className="font-serif text-xl sm:text-2xl md:text-3xl font-bold text-navy mb-6 whitespace-nowrap">OROELU GODWIN AGIDI & CO</h2>
              <p className="text-gray-600 mb-6 leading-relaxed">
-               Established with a vision to redefine legal excellence, O.G. Agidi & Co has been at the forefront of corporate and commercial law for over two decades. Our firm is built on a foundation of deep legal expertise, strategic thinking, and an unwavering commitment to our clients' success.
+               Established with a vision to redefine legal excellence, OROELU GODWIN AGIDI & CO has been at the forefront of corporate and commercial law for over two decades. Our firm is built on a foundation of deep legal expertise, strategic thinking, and an unwavering commitment to our clients' success.
              </p>
              <p className="text-gray-600 leading-relaxed">
-               We pride ourselves on our ability to navigate complex legal landscapes and deliver innovative solutions that drive business growth. From high-stakes litigation to intricate corporate structuring, O.G. Agidi & Co is your trusted partner in law.
+               We pride ourselves on our ability to navigate complex legal landscapes and deliver innovative solutions that drive business growth. From high-stakes litigation to intricate corporate structuring, OROELU GODWIN AGIDI & CO is your trusted partner in law.
              </p>
            </div>
            <div className="flex-1 w-full h-80 bg-navy rounded-xl relative overflow-hidden flex items-center justify-center group">
               <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#C5A059 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
               <div className="text-center p-8">
                 <h3 className="font-serif text-2xl text-white mb-2">Legacy of Trust</h3>
-                <p className="text-gray-300">Since 1998</p>
+                <p className="text-gray-300">Since 1995</p>
               </div>
            </div>
+        </div>
+      </div>
+
+      {/* Founder Profile Section */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-20">
+        <div className="bg-navy text-white rounded-2xl shadow-xl overflow-hidden flex flex-col lg:flex-row">
+          <div className="lg:w-1/3 bg-gray-100 relative min-h-[400px]">
+            {/* Placeholder for Founder Photo */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-navy/20 p-8 text-center">
+              <Users className="w-24 h-24 mb-4 opacity-10" />
+              <p className="font-serif text-xl font-bold opacity-30">Dr. Oroelu Godwin Agidi</p>
+              <p className="text-sm opacity-30 mt-2">Founder & Lead Partner</p>
+            </div>
+            {/* Award Badge Overlay */}
+            <div className="absolute top-6 left-6 bg-gold text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+              <Award className="w-5 h-5" />
+              <span className="text-xs font-bold uppercase tracking-wider">African Impact Award 2025</span>
+            </div>
+          </div>
+          <div className="lg:w-2/3 p-8 md:p-12">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-px w-12 bg-gold"></div>
+              <span className="text-gold font-bold uppercase tracking-widest text-sm">Founder's Profile</span>
+            </div>
+            <h2 className="font-serif text-4xl font-bold mb-8 leading-tight">Dr. Oroelu Godwin Agidi</h2>
+            
+            <div className="space-y-6 text-gray-300 leading-relaxed font-sans">
+              <p className="text-white text-lg font-medium italic border-l-4 border-gold pl-6">
+                "Oroelu Godwin Agidi stands as the esteemed founder and lead partner of OROELU GODWIN AGIDI & CO. This multidisciplinary firm boasts specializations across several crucial areas, including law, arbitration, alternative dispute resolution (ADR), and comprehensive loan and risk management services."
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-8 mt-10">
+                <div>
+                  <h3 className="text-gold font-bold uppercase tracking-wider text-xs mb-4">Academic Excellence</h3>
+                  <p className="text-sm">
+                    His academic journey is extensive and impressive, beginning with his call to the Nigerian Bar in 1995. Agidi pursued advanced studies, culminating in a Master’s degree in Diplomacy and Negotiation, and ultimately, a Doctorate in both Law and Diplomacy.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-gold font-bold uppercase tracking-wider text-xs mb-4">Regulatory Expertise</h3>
+                  <p className="text-sm">
+                    A prominent area of his professional expertise lies in regulatory compliance, where he is widely recognized for his deep knowledge of anti-money laundering (AML) and counter-terrorism financing (CTF) protocols.
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm">
+                Agidi’s contributions and advocacy in the field of international law have been honored with the prestigious International Law Association’s Award for International Law Advocacy, a testament to his influence and respect among his peers.
+              </p>
+
+              <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-gold" /> Professional Affiliations
+                </h3>
+                <ul className="grid md:grid-cols-2 gap-x-6 gap-y-2 text-xs text-gray-400">
+                  <li>• Nigerian Institute of Chartered Arbitrators</li>
+                  <li>• Institute of Chartered Administrators and Researchers of Nigeria</li>
+                  <li>• Chartered Institute of Loan and Risk Management of Nigeria</li>
+                  <li>• International Certified Risk Management Professionals (UK)</li>
+                  <li>• Nigerian Bar Association (NBA)</li>
+                  <li>• International Law Association (Nigerian Branch)</li>
+                </ul>
+              </div>
+
+              <p className="text-sm">
+                With over three decades of active legal practice, Agidi possesses a wealth of experience in high-stakes litigation, property, corporate, and commercial law. His extensive courtroom experience includes representing clients effectively in appellate courts.
+              </p>
+
+              <div className="pt-6 border-t border-white/10 mt-8">
+                <h3 className="text-white font-bold text-sm mb-4">Beyond the Courtroom</h3>
+                <p className="text-sm italic">
+                  Dr. Agidi serves as a West African Youth Council Peace Ambassador and holds vital board and advisory roles. He is deeply committed to legal scholarship, mentoring young lawyers, and supporting the less privileged and widows in his community.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -194,7 +270,7 @@ export default function AboutUs() {
             <div className="text-center mb-16">
               <h2 className="font-serif text-3xl md:text-4xl font-bold text-navy mb-4">Client Testimonials</h2>
               <p className="text-gray-600 max-w-2xl mx-auto">
-                Hear from the businesses and individuals who trust O.G. Agidi & Co with their most critical legal matters.
+                Hear from the businesses and individuals who trust OROELU GODWIN AGIDI & CO with their most critical legal matters.
               </p>
             </div>
 

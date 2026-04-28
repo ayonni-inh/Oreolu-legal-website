@@ -1,7 +1,7 @@
 import { Calendar, ChevronRight, Scale, Search, Shield, FileText, Users, Briefcase } from 'lucide-react';
 import { useState } from 'react';
 
-export default function Hero() {
+export default function Hero({ onGetStarted }: { onGetStarted?: () => void }) {
   return (
     <section className="bg-navy text-white pt-24 pb-16 px-6 lg:px-8 relative overflow-hidden">
       {/* Background Pattern */}
@@ -17,16 +17,14 @@ export default function Hero() {
               Access our comprehensive suite of legal services. Register your account, book expert consultations, and manage your legal affairs through our secure client portal.
             </p>
             
-            {/* Service Search Bar */}
-            <div className="bg-white rounded-lg p-2 flex items-center shadow-lg max-w-md mb-10">
-              <Search className="text-gray-400 ml-3 w-5 h-5" />
-              <input 
-                type="text" 
-                placeholder="Search practice areas or services..." 
-                className="flex-1 bg-transparent border-none outline-none text-gray-800 px-4 py-2 font-sans"
-              />
-              <button className="bg-gold hover:bg-gold-hover text-white px-6 py-2 rounded-md font-medium transition-colors">
-                Find
+            {/* Call to Action */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-10">
+              <button 
+                onClick={onGetStarted}
+                className="bg-gold hover:bg-gold-hover text-white px-8 py-4 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-gold/20"
+              >
+                Get Started
+                <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>

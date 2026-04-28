@@ -1,20 +1,36 @@
 import { X, Calendar as CalendarIcon, Clock, CreditCard, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
+import { sendEmailNotification, emailTemplates } from '../services/emailService';
 
 interface BookingModalProps {
   service: any;
   onClose: () => void;
   isLoggedIn: boolean;
+  user?: any;
   onLoginRequired: () => void;
+  onSuccess?: () => void;
 }
 
-export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequired }: BookingModalProps) {
+export default function BookingModal({ service: initialService, onClose, isLoggedIn, user, onLoginRequired, onSuccess }: BookingModalProps) {
   const [step, setStep] = useState(1);
+  const [selectedService, setSelectedService] = useState(initialService);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isChangingService, setIsChangingService] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<{trackingNumber: string, invoiceId: string} | null>(null);
+
+  const availableServices = [
+    { id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' },
+    { id: 'document-review', title: 'Document Review', price: '$450', duration: '1.5 Hours' },
+    { id: 'business-setup', title: 'Business Formation', price: '$1,200', duration: '2 Hours' },
+    { id: 'plan-basic', title: 'Basic Legal Plan', price: '$49/mo', duration: 'Monthly Subscription', isPlan: true },
+    { id: 'plan-premium', title: 'Premium Legal Plan', price: '$149/mo', duration: 'Monthly Subscription', isPlan: true },
+  ].filter(s => {
+    if (s.isPlan && (user?.appRole === 'Admin' || user?.appRole === 'Staff')) return false;
+    return true;
+  });
 
   // Check login status immediately
   if (!isLoggedIn) {
@@ -47,23 +63,65 @@ export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequ
     );
   }
 
-  const handlePayment = () => {
+  // Update handlePayment to use selectedService and send status: 'Pending'
+  const handlePayment = async () => {
     setIsProcessing(true);
     setError(null);
-    // Simulate payment gateway delay
-    setTimeout(() => {
+    
+    try {
+      // Simulate payment gateway delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       // 10% chance of payment failure for demonstration
       if (Math.random() > 0.9) {
-        setError("Payment processing failed. Please check your card details or try a different payment method.");
-        setIsProcessing(false);
-      } else {
-        const trackingNumber = 'TRK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-        const invoiceId = 'INV-' + Math.floor(100000 + Math.random() * 900000);
-        setBookingDetails({ trackingNumber, invoiceId });
-        setIsProcessing(false);
-        setStep(3);
+        throw new Error("Payment processing failed. Please check your card details or try a different payment method.");
       }
-    }, 2000);
+
+      const trackingNumber = 'TRK-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+      const invoiceId = 'INV-' + Math.floor(100000 + Math.random() * 900000);
+
+      // Call backend API to save the appointment
+      const response = await fetch('/api/appointments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id || user?.clientId || 'client-1',
+          serviceTitle: selectedService.title,
+          date: selectedDate,
+          time: selectedTime,
+          price: selectedService.price,
+          trackingNumber,
+          role: user?.appRole || 'Client',
+          requesterName: user ? `${user.firstName} ${user.lastName}` : 'Guest Client'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save appointment");
+      }
+
+      setBookingDetails({ trackingNumber, invoiceId });
+      setStep(3);
+      onSuccess?.();
+
+      // Send booking confirmation email
+      if (user?.email) {
+        const template = emailTemplates.bookingConfirmation(
+          user.firstName,
+          selectedService.title,
+          selectedDate || '',
+          selectedTime || ''
+        );
+        sendEmailNotification(user.email, template.subject, template.html);
+      }
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const dates = [
@@ -84,9 +142,9 @@ export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequ
         <div className="bg-navy text-white p-6 flex justify-between items-center shrink-0 relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#C5A059 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
           <div className="relative z-10">
-            <h2 className="font-serif text-2xl font-bold">{service.title}</h2>
+            <h2 className="font-serif text-2xl font-bold">{selectedService.title}</h2>
             <p className="text-gold font-sans text-sm mt-1 flex items-center gap-2">
-              <Clock className="w-4 h-4" /> {service.duration} • {service.price}
+              <Clock className="w-4 h-4" /> {selectedService.duration} • {selectedService.price}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-300 hover:text-white transition-colors relative z-10">
@@ -173,21 +231,58 @@ export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequ
           {step === 2 && (
             <div className="animate-in fade-in slide-in-from-right-8 duration-500">
               <h3 className="text-lg font-semibold text-navy mb-6 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-gold" /> Secure Payment
+                <CreditCard className="w-5 h-5 text-gold" /> Review & Payment
               </h3>
               
-              <div className="bg-gray-50 rounded-xl p-6 mb-8 border border-gray-100">
+              <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-100">
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                  <span className="text-gray-600">Service</span>
-                  <span className="font-semibold text-navy">{service.title}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Selected Service</span>
+                    <span className="font-bold text-navy">{selectedService.title}</span>
+                  </div>
+                  <button 
+                    onClick={() => setIsChangingService(!isChangingService)}
+                    className="text-xs font-bold text-gold hover:text-navy border border-gold/30 hover:border-navy hover:bg-navy/5 px-3 py-1.5 rounded-lg transition-all"
+                  >
+                    {isChangingService ? 'Hide Options' : 'Change Service'}
+                  </button>
                 </div>
+
+                {isChangingService && (
+                  <div className="mb-6 grid grid-cols-1 gap-2 animate-in slide-in-from-top-4 duration-300">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Switch to another service or plan:</p>
+                    {availableServices.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setSelectedService(s);
+                          setIsChangingService(false);
+                        }}
+                        className={`flex justify-between items-center p-3 rounded-lg border text-left transition-all ${
+                          selectedService.id === s.id 
+                            ? 'bg-gold/5 border-gold shadow-sm' 
+                            : 'bg-white border-gray-100 hover:border-gold/30'
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-bold text-navy">{s.title}</p>
+                          <p className="text-[10px] text-gray-500">{s.duration}</p>
+                        </div>
+                        <span className="text-sm font-bold text-gold">{s.price}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                  <span className="text-gray-600">Appointment</span>
-                  <span className="font-semibold text-navy">{selectedDate} at {selectedTime}</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Appointment Time</span>
+                    <span className="font-bold text-navy">{selectedDate} at {selectedTime}</span>
+                  </div>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 font-medium">Total Due</span>
-                  <span className="font-bold text-2xl text-navy">{service.price}</span>
+                  <span className="font-bold text-2xl text-navy">{selectedService.price}</span>
                 </div>
               </div>
 
@@ -231,7 +326,7 @@ export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequ
                   {isProcessing ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    `Pay ${service.price}`
+                    `Pay ${selectedService.price}`
                   )}
                 </button>
               </div>
@@ -243,9 +338,9 @@ export default function BookingModal({ service, onClose, isLoggedIn, onLoginRequ
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
-              <h3 className="font-serif text-3xl font-bold text-navy mb-4">Booking Confirmed</h3>
+              <h3 className="font-serif text-3xl font-bold text-navy mb-4">Booking Received</h3>
               <p className="text-gray-600 font-sans max-w-md mx-auto mb-8">
-                Your payment of {service.price} was successful. A confirmation email has been sent.
+                Your payment of {selectedService.price} was successful. Your appointment request is now <span className="font-bold text-gold">Pending</span> and will be reviewed by our team shortly.
               </p>
               
               <div className="bg-gray-50 rounded-xl p-6 max-w-sm mx-auto mb-8 border border-gray-200">

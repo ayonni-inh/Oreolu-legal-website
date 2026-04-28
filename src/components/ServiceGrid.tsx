@@ -94,7 +94,7 @@ export default function ServiceGrid({ onBookService }: ServiceGridProps) {
           <div 
             ref={scrollRef}
             onScroll={handleScroll}
-            className="flex overflow-x-auto pb-8 -mx-6 px-6 md:mx-auto md:px-0 md:pb-0 md:grid md:grid-cols-3 gap-6 md:gap-8 max-w-6xl snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            className="flex overflow-x-auto pt-6 pb-8 -mx-6 px-6 md:mx-auto md:px-0 md:pt-8 md:pb-0 md:grid md:grid-cols-3 gap-6 md:gap-8 max-w-6xl snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
             {services.map((service) => (
               <div 
