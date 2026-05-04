@@ -33,7 +33,7 @@ export default function Hero({ onGetStarted }: { onGetStarted?: () => void }) {
           <div className="grid grid-cols-2 gap-4">
             {[
               { icon: Briefcase, title: 'Corporate Law', desc: 'Incorporation & Compliance' },
-              { icon: Scale, title: 'Litigation', desc: 'Dispute Resolution' },
+              { icon: Scale, title: 'Mediation/Arbitration', desc: 'Dispute Resolution' },
               { icon: FileText, title: 'Contracts', desc: 'Drafting & Review' },
               { icon: Shield, title: 'Intellectual Property', desc: 'Trademarks & Patents' }
             ].map((area, idx) => (

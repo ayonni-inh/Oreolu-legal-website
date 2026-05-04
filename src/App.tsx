@@ -146,8 +146,9 @@ export default function App() {
       <footer className="bg-navy text-white py-12 px-6 lg:px-8 border-t border-white/10">
         <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <span className="font-serif text-2xl font-bold text-white tracking-tight">AGIDI & CO</span>
+            <div className="flex flex-col items-center mb-6">
+              <span className="font-bold text-white text-base tracking-tight text-center leading-tight">OROELU GODWIN AGIDI</span>
+              <span className="font-bold text-white text-base tracking-tight text-center leading-tight">& CO</span>
             </div>
             <p className="text-gray-400 text-sm">
               Modern legal representation. Transparent pricing. Accessible anywhere.
@@ -182,10 +183,10 @@ export default function App() {
         {/* Bottom Legal Bar */}
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
           <div className="flex-1">
-            <p>&copy; {new Date().getFullYear()} AGIDI & CO. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} OROELU GODWIN AGIDI & CO. All rights reserved.</p>
             <p className="mt-2 text-[10px] leading-relaxed max-w-2xl">
               <span className="text-gold font-bold uppercase tracking-widest block mb-1">Legal Disclaimer:</span>
-              The information provided on this website is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by the use of this site or the submission of information through our portal. AGIDI & CO is a registered law firm in Nigeria.
+              The information provided on this website is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by the use of this site or the submission of information through our portal. OROELU GODWIN AGIDI & CO is a registered law firm in Nigeria.
             </p>
           </div>
           <div className="flex gap-6 shrink-0">

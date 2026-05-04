@@ -86,7 +86,9 @@ export default function AboutUs() {
                <Building2 className="w-6 h-6 text-gold" />
                <span className="text-sm font-bold text-gold uppercase tracking-wider">The Firm</span>
              </div>
-             <h2 className="font-serif text-xl sm:text-2xl md:text-3xl font-bold text-navy mb-6 whitespace-nowrap">OROELU GODWIN AGIDI & CO</h2>
+             <h2 className="font-bold text-navy mb-6 text-xl sm:text-2xl md:text-3xl text-center leading-tight">
+               OROELU GODWIN AGIDI<br/>& CO
+             </h2>
              <p className="text-gray-600 mb-6 leading-relaxed">
                Established with a vision to redefine legal excellence, OROELU GODWIN AGIDI & CO has been at the forefront of corporate and commercial law for over two decades. Our firm is built on a foundation of deep legal expertise, strategic thinking, and an unwavering commitment to our clients' success.
              </p>
