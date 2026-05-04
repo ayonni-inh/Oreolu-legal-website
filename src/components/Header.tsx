@@ -41,18 +41,24 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           onClick={() => handleNavClick('home')}
           aria-label="OROELU GODWIN AGIDI & CO - Home"
         >
-          <div className="w-14 h-9 flex items-center justify-center shrink-0" aria-hidden="true">
-            <svg viewBox="0 0 100 55" className="w-14 h-9" fill="#0a1628" xmlns="http://www.w3.org/2000/svg">
-              <path d="M52,25 C45,19 35,13 20,9 C13,7 6,8 2,11 C9,12 19,13 30,17 C41,21 48,23 52,25Z"/>
-              <path d="M52,30 C44,36 32,43 18,47 C11,49 4,48 2,44 C9,43 19,42 30,40 C41,37 48,33 52,30Z"/>
-              <path d="M60,24 C67,18 77,12 90,9 C96,7 100,9 99,13 C93,14 85,14 77,17 C69,20 63,22 60,24Z"/>
-              <path d="M60,30 C67,36 77,42 90,46 C96,48 100,46 99,43 C93,41 85,40 77,38 C69,36 63,33 60,30Z"/>
-              <ellipse cx="56" cy="27" rx="9" ry="5"/>
-              <path d="M63,23 C67,20 72,19 76,21 C72,23 67,24 63,27Z"/>
-              <circle cx="77" cy="21" r="7"/>
-              <path d="M83,18 C89,17 93,19 91,23 C89,25 85,24 83,21Z"/>
-              <circle cx="79" cy="19" r="1.8" fill="white"/>
-              <path d="M46,25 C39,23 30,22 24,25 C30,28 39,29 46,30Z"/>
+          <div className="w-32 h-16 flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg viewBox="0 0 200 100" className="w-32 h-16" xmlns="http://www.w3.org/2000/svg" fill="#002147">
+              {/* Left wing — one bold solid shape from tip to body */}
+              <path d="M4,50 C18,34 40,22 70,36 L82,46 L82,54 C40,72 18,68 4,50Z"/>
+              {/* Right wing — one bold solid shape from body to tip */}
+              <path d="M118,46 C138,30 162,18 196,14 L198,22 L196,30 C160,46 138,58 118,54Z"/>
+              {/* Body */}
+              <ellipse cx="100" cy="50" rx="22" ry="9"/>
+              {/* Neck connecting body to head */}
+              <path d="M118,44 C128,36 140,30 148,33 C142,38 132,44 120,48Z"/>
+              {/* Head */}
+              <circle cx="160" cy="24" r="15"/>
+              {/* Hooked beak */}
+              <path d="M173,18 C182,16 188,21 185,28 C182,31 175,29 173,24Z"/>
+              {/* Eye */}
+              <circle cx="164" cy="20" r="3.2" fill="white"/>
+              {/* Tail feathers */}
+              <path d="M76,47 C60,43 44,41 30,45 C44,51 60,55 76,53Z"/>
             </svg>
           </div>
           <div className="text-center leading-tight">
