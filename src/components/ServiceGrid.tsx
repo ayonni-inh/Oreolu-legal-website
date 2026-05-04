@@ -21,7 +21,14 @@ const services = [
       'Criminal litigation',
       'Divorce litigation',
       'Employment litigation',
-      'Real estate litigation'
+      'Real estate litigation',
+      'Chieftancy Cases',
+      'Land/Property Cases',
+      'Corporate/Commercial Cases',
+      'Criminal Cases',
+      'Employment Cases',
+      'Intellectual Property Cases',
+      'Blockchain/Cyber/ICT Cases'
     ],
     highlighted: true
   },
@@ -42,7 +49,7 @@ const services = [
   {
     id: 'advisory-personal',
     title: 'Advisory & Personal',
-    price: 'Flat Fee',
+    price: '',
     duration: 'Varies',
     description: 'Personalized legal guidance, estate planning, and alternative dispute resolution.',
     features: [
@@ -122,11 +129,13 @@ export default function ServiceGrid({ onBookService }: ServiceGridProps) {
               
               <div className={`mb-8 pb-8 border-b ${service.highlighted ? 'border-white/10' : 'border-gray-100'}`}>
                 <div className="flex items-baseline gap-2">
-                  <span className={`text-4xl font-bold tracking-tight ${service.highlighted ? 'text-white' : 'text-navy'}`}>
-                    {service.price}
-                  </span>
+                  {service.price && (
+                    <span className={`text-4xl font-bold tracking-tight ${service.highlighted ? 'text-white' : 'text-navy'}`}>
+                      {service.price}
+                    </span>
+                  )}
                   <span className={`font-sans text-xs font-semibold uppercase tracking-wider ${service.highlighted ? 'text-gray-400' : 'text-gray-500'}`}>
-                    / {service.duration}
+                    {service.price ? '/ ' : ''}{service.duration}
                   </span>
                 </div>
               </div>
