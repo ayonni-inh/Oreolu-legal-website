@@ -11,7 +11,7 @@ const services = [
     title: 'Litigation Services',
     price: 'Retainer',
     duration: 'Case-by-Case',
-    description: 'Expert representation in court and dispute resolution across various legal domains.',
+    description: 'Representation in Trial, Appellate Court and Tribunals.',
     features: [
       'Appellate advocacy',
       'Civil litigation',
