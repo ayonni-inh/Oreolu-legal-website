@@ -1,4 +1,4 @@
-import { Scale, Menu, X, User } from 'lucide-react';
+import { Menu, X, User } from 'lucide-react';
 import { useState } from 'react';
 
 interface HeaderProps {
@@ -41,8 +41,22 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           onClick={() => handleNavClick('home')}
           aria-label="OROELU GODWIN AGIDI & CO - Home"
         >
-          <div className="w-10 h-10 bg-navy rounded flex items-center justify-center">
-            <Scale className="text-gold w-6 h-6" aria-hidden="true" />
+          <div className="w-10 h-10 flex items-center justify-center" aria-hidden="true">
+            <svg viewBox="0 0 64 64" className="w-10 h-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M4 30 C8 26, 14 22, 20 24 L28 20 C32 16, 40 12, 50 10 C46 16, 42 20, 38 22 L44 20 C48 18, 54 17, 60 18 C55 23, 48 25, 42 24 L36 26 C44 28, 50 32, 52 38 C46 36, 40 32, 34 30 L30 32 C26 38, 20 44, 12 46 C14 40, 18 34, 24 30 L18 32 C12 34, 8 36, 4 34 Z"
+                fill="#0a1628"
+              />
+              <path
+                d="M36 26 C38 30, 38 35, 36 40 C34 36, 33 31, 36 26 Z"
+                fill="#0a1628"
+              />
+              <circle cx="49" cy="13" r="2" fill="#0a1628" />
+              <path
+                d="M51 13 C54 12, 57 13, 59 15 C57 15, 55 15, 53 14 Z"
+                fill="#0a1628"
+              />
+            </svg>
           </div>
           <span className="font-serif text-xl md:text-2xl font-bold text-navy tracking-tight whitespace-nowrap">AGIDI & CO</span>
         </button>
