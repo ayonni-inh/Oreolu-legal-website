@@ -151,55 +151,77 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-navy text-white py-12 px-6 lg:px-8 border-t border-white/10">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex flex-col items-center mb-6">
-              <span className="font-bold text-white text-base tracking-tight text-center leading-tight">OROELU GODWIN AGIDI</span>
-              <span className="font-bold text-white text-base tracking-tight text-center leading-tight">& CO</span>
+      <footer className="bg-navy text-white pt-14 pb-8 px-4 sm:px-6 lg:px-8 border-t border-white/10">
+        <div className="max-w-7xl mx-auto">
+          {/* Top grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            {/* Brand */}
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-3 mb-4">
+                <img src="/eagle-logo-transparent.png" alt="" className="w-10 h-10 object-contain brightness-0 invert opacity-70" />
+                <div className="leading-tight">
+                  <div className="font-bold text-white text-xs tracking-tight">OROELU GODWIN</div>
+                  <div className="font-bold text-gold text-xs tracking-tight">AGIDI &amp; CO</div>
+                </div>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed">
+                Modern legal representation. Transparent pricing. Accessible anywhere.
+              </p>
             </div>
-            <p className="text-gray-400 text-sm">
-              Modern legal representation. Transparent pricing. Accessible anywhere.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-serif font-semibold mb-4 text-gold">Services</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors">Corporate Law</button></li>
-              <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors">Litigation</button></li>
-              <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors">Contracts</button></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-serif font-semibold mb-4 text-gold">Portal</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><button onClick={() => setIsLoginOpen(true)} className="hover:text-white transition-colors">Client Login</button></li>
-              <li><button onClick={() => setIsRegistrationOpen(true)} className="hover:text-white transition-colors">Register Account</button></li>
-              <li><button onClick={() => setIsLoginOpen(true)} className="hover:text-white transition-colors">Secure Upload</button></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-serif font-semibold mb-4 text-gold">Contact</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li>+234 803 320 1909</li>
-              <li>contact@ogagidi.com</li>
-              <li>SUITE C20/C21, CHERUB MALL,<br/>New Road Bus Stop,<br/>KM 18 Lekki - Epe Expy,<br/>Lekki Penninsula II,<br/>Lekki 106104, Lagos</li>
-            </ul>
-          </div>
-        </div>
 
-        {/* Bottom Legal Bar */}
-        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-          <div className="flex-1">
-            <p>&copy; {new Date().getFullYear()} OROELU GODWIN AGIDI & CO. All rights reserved.</p>
-            <p className="mt-2 text-[10px] leading-relaxed max-w-2xl">
-              <span className="text-gold font-bold uppercase tracking-widest block mb-1">Legal Disclaimer:</span>
-              The information provided on this website is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by the use of this site or the submission of information through our portal. OROELU GODWIN AGIDI & CO is a registered law firm in Nigeria.
-            </p>
+            {/* Services */}
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-4 text-gold">Services</h4>
+              <ul className="space-y-2.5 text-sm text-gray-400">
+                <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors text-left">Corporate Law</button></li>
+                <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors text-left">Litigation</button></li>
+                <li><button onClick={() => setCurrentPage('home')} className="hover:text-white transition-colors text-left">Contracts</button></li>
+                <li><button onClick={() => setCurrentPage('about-us')} className="hover:text-white transition-colors text-left">About Us</button></li>
+              </ul>
+            </div>
+
+            {/* Portal */}
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-4 text-gold">Portal</h4>
+              <ul className="space-y-2.5 text-sm text-gray-400">
+                <li><button onClick={() => setIsLoginOpen(true)} className="hover:text-white transition-colors text-left">Client Login</button></li>
+                <li><button onClick={() => setIsRegistrationOpen(true)} className="hover:text-white transition-colors text-left">Register Account</button></li>
+                <li><button onClick={() => setCurrentPage('legal-research')} className="hover:text-white transition-colors text-left">Legal Research</button></li>
+                <li><button onClick={() => setCurrentPage('blog')} className="hover:text-white transition-colors text-left">Blog</button></li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-widest mb-4 text-gold">Contact</h4>
+              <ul className="space-y-2.5 text-sm text-gray-400">
+                <li><a href="tel:+2348033201909" className="hover:text-white transition-colors">+234 803 320 1909</a></li>
+                <li><a href="mailto:contact@ogagidi.com" className="hover:text-white transition-colors">contact@ogagidi.com</a></li>
+                <li className="leading-relaxed text-xs">
+                  SUITE C20/C21, CHERUB MALL,<br />
+                  New Road Bus Stop,<br />
+                  KM 18 Lekki - Epe Expy,<br />
+                  Lekki 106104, Lagos
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6 shrink-0">
-            <button onClick={() => setCurrentPage('terms-of-service')} className="hover:text-white transition-colors">Terms of Service</button>
-            <button onClick={() => setCurrentPage('privacy-policy')} className="hover:text-white transition-colors">Privacy Policy</button>
+
+          {/* Bottom bar */}
+          <div className="pt-8 border-t border-white/10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div>
+                <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} OROELU GODWIN AGIDI &amp; CO. All rights reserved.</p>
+                <p className="mt-2 text-[10px] leading-relaxed max-w-2xl text-gray-500">
+                  <span className="text-gold font-bold uppercase tracking-widest">Legal Disclaimer: </span>
+                  The information on this website is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by use of this site. OROELU GODWIN AGIDI &amp; CO is a registered law firm in Nigeria.
+                </p>
+              </div>
+              <div className="flex gap-5 shrink-0 text-sm text-gray-400">
+                <button onClick={() => setCurrentPage('terms-of-service')} className="hover:text-white transition-colors">Terms</button>
+                <button onClick={() => setCurrentPage('privacy-policy')} className="hover:text-white transition-colors">Privacy</button>
+              </div>
+            </div>
           </div>
         </div>
       </footer>
