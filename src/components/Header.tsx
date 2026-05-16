@@ -41,26 +41,12 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           onClick={() => handleNavClick('home')}
           aria-label="OROELU GODWIN AGIDI & CO - Home"
         >
-          <div className="w-32 h-16 flex items-center justify-center shrink-0" aria-hidden="true">
-            <svg viewBox="0 0 200 100" className="w-32 h-16" xmlns="http://www.w3.org/2000/svg" fill="#002147">
-              {/* Left wing — one bold solid shape from tip to body */}
-              <path d="M4,50 C18,34 40,22 70,36 L82,46 L82,54 C40,72 18,68 4,50Z"/>
-              {/* Right wing — one bold solid shape from body to tip */}
-              <path d="M118,46 C138,30 162,18 196,14 L198,22 L196,30 C160,46 138,58 118,54Z"/>
-              {/* Body */}
-              <ellipse cx="100" cy="50" rx="22" ry="9"/>
-              {/* Neck connecting body to head */}
-              <path d="M118,44 C128,36 140,30 148,33 C142,38 132,44 120,48Z"/>
-              {/* Head */}
-              <circle cx="160" cy="24" r="15"/>
-              {/* Hooked beak */}
-              <path d="M173,18 C182,16 188,21 185,28 C182,31 175,29 173,24Z"/>
-              {/* Eye */}
-              <circle cx="164" cy="20" r="3.2" fill="white"/>
-              {/* Tail feathers */}
-              <path d="M76,47 C60,43 44,41 30,45 C44,51 60,55 76,53Z"/>
-            </svg>
-          </div>
+          <img
+            src="/eagle-logo-transparent.png"
+            alt=""
+            className="w-16 h-16 object-contain shrink-0"
+            style={{ filter: 'brightness(0) saturate(100%) invert(8%) sepia(60%) saturate(800%) hue-rotate(190deg) brightness(85%)' }}
+          />
           <div className="text-center leading-tight">
             <div className="font-bold text-navy text-sm md:text-base tracking-tight">OROELU GODWIN AGIDI</div>
             <div className="font-bold text-navy text-sm md:text-base tracking-tight">& CO</div>
