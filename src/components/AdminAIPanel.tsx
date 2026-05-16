@@ -3,7 +3,7 @@ import {
   Sparkles, Activity, ClipboardList, GitBranch, FolderLock, UserCog,
   Bell, FileSignature, Video, NotebookPen, Flag, BarChart3, Send,
   Search, RefreshCw, Plus, ShieldAlert, CheckCircle2, Clock, ExternalLink,
-  Bot, Zap
+  Bot, Zap, Users, Pencil, Trash2, UserPlus
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar,
@@ -14,7 +14,7 @@ interface Props { user: any }
 
 type TabId =
   | 'overview' | 'activity' | 'onboarding' | 'cases' | 'vault'
-  | 'assignment' | 'reminders' | 'esign' | 'consult' | 'notes' | 'analytics';
+  | 'assignment' | 'staffManagement' | 'reminders' | 'esign' | 'consult' | 'notes' | 'analytics';
 
 const TABS: { id: TabId; label: string; icon: any; }[] = [
   { id: 'overview', label: 'AI Overview', icon: Sparkles },
@@ -23,6 +23,7 @@ const TABS: { id: TabId; label: string; icon: any; }[] = [
   { id: 'cases', label: 'Case Timeline', icon: GitBranch },
   { id: 'vault', label: 'Document Vault', icon: FolderLock },
   { id: 'assignment', label: 'Lawyer Assignment', icon: UserCog },
+  { id: 'staffManagement', label: 'Staff Management', icon: Users },
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'esign', label: 'E-Signatures', icon: FileSignature },
   { id: 'consult', label: 'Video Consults', icon: Video },
@@ -220,6 +221,57 @@ export default function AdminAIPanel({ user }: Props) {
     });
     refreshAll();
     setRecommendations([]); setRecCaseId('');
+  };
+
+  // ----- Staff Management -----
+  const [staffForm, setStaffForm] = useState({ firstName: '', lastName: '', email: '', specialties: '', capacity: '8' });
+  const [editingStaff, setEditingStaff] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [staffSaving, setStaffSaving] = useState(false);
+  const [staffMsg, setStaffMsg] = useState('');
+
+  const addStaff = async () => {
+    if (!staffForm.firstName || !staffForm.email) return;
+    setStaffSaving(true);
+    try {
+      await fetch('/api/staff', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...staffForm,
+          specialties: staffForm.specialties.split(',').map(s => s.trim()).filter(Boolean),
+          capacity: parseInt(staffForm.capacity) || 8,
+          adminName
+        })
+      });
+      setStaffMsg('Staff member added successfully.');
+      setStaffForm({ firstName: '', lastName: '', email: '', specialties: '', capacity: '8' });
+      refreshAll();
+    } finally {
+      setStaffSaving(false);
+      setTimeout(() => setStaffMsg(''), 3000);
+    }
+  };
+
+  const updateStaff = async (id: string) => {
+    const name = `${editForm.firstName} ${editForm.lastName}`.trim();
+    const specialties = typeof editForm.specialties === 'string'
+      ? editForm.specialties.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : editForm.specialties;
+    await fetch(`/api/staff/${id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, specialties, capacity: parseInt(editForm.capacity) || 8, adminName })
+    });
+    setEditingStaff(null);
+    refreshAll();
+  };
+
+  const removeStaff = async (id: string, name: string) => {
+    if (!window.confirm(`Remove ${name} from the legal team?`)) return;
+    await fetch(`/api/staff/${id}`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminName })
+    });
+    refreshAll();
   };
 
   // ----- Reminders -----
@@ -920,6 +972,173 @@ export default function AdminAIPanel({ user }: Props) {
             </div>
           )}
         </div>
+
+          {/* STAFF MANAGEMENT */}
+          {activeTab === 'staffManagement' && (
+            <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+              {/* Left: staff list */}
+              <div className="lg:col-span-2">
+                <h2 className="font-serif text-2xl font-bold text-navy mb-1">Legal Team</h2>
+                <p className="text-sm text-gray-500 mb-4">Manage staff members, specialties, and case capacity. Staff listed here are also available in the Lawyer Assignment engine.</p>
+                <div className="space-y-3">
+                  {lawyers.map(lw => {
+                    const assignedCases = cases.filter(c => c.assignedLawyerId === lw.id);
+                    return (
+                      <div key={lw.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+                        {editingStaff === lw.id ? (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-2">
+                              <input value={editForm.firstName} onChange={e => setEditForm((p: any) => ({ ...p, firstName: e.target.value }))}
+                                placeholder="First name" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                              <input value={editForm.lastName} onChange={e => setEditForm((p: any) => ({ ...p, lastName: e.target.value }))}
+                                placeholder="Last name" className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                            </div>
+                            <input value={typeof editForm.specialties === 'string' ? editForm.specialties : editForm.specialties?.join(', ')}
+                              onChange={e => setEditForm((p: any) => ({ ...p, specialties: e.target.value }))}
+                              placeholder="Specialties (comma-separated, e.g. Litigation, Corporate)"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs text-gray-500">Max cases:</label>
+                              <input type="number" min="1" max="20" value={editForm.capacity}
+                                onChange={e => setEditForm((p: any) => ({ ...p, capacity: e.target.value }))}
+                                className="w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => updateStaff(lw.id)} className="bg-navy text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-navy/90">Save Changes</button>
+                              <button onClick={() => setEditingStaff(null)} className="bg-gray-100 text-gray-600 text-xs font-bold px-4 py-2 rounded-lg hover:bg-gray-200">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-navy rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
+                                  {lw.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="font-bold text-navy text-sm">{lw.name}</p>
+                                  <p className="text-[10px] text-gray-500 mt-0.5">{lw.specialties.length ? lw.specialties.join(' · ') : 'No specialties set'}</p>
+                                  <div className="flex items-center gap-3 mt-1.5">
+                                    <span className="text-[10px] text-gray-400">{lw.activeCases}/{lw.capacity} cases</span>
+                                    <span className="text-[10px] text-amber-500">★ {lw.rating}</span>
+                                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${lw.capacity > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'}`}>
+                                      {lw.capacity > 0 ? 'ACTIVE' : 'INACTIVE'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <div className="hidden md:flex flex-col items-end gap-1 mr-2">
+                                  <span className="text-[9px] text-gray-400 uppercase tracking-wider">Capacity</span>
+                                  <div className="w-20 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${lw.capacity === 0 ? 'bg-gray-300' : lw.activeCases / lw.capacity > 0.8 ? 'bg-rose-400' : lw.activeCases / lw.capacity > 0.5 ? 'bg-amber-400' : 'bg-emerald-400'}`}
+                                      style={{ width: `${lw.capacity > 0 ? Math.min(100, (lw.activeCases / lw.capacity) * 100) : 0}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const parts = lw.name.split(' ');
+                                    setEditingStaff(lw.id);
+                                    setEditForm({ firstName: parts[0], lastName: parts.slice(1).join(' '), specialties: lw.specialties.join(', '), capacity: String(lw.capacity) });
+                                  }}
+                                  className="p-2 text-gray-400 hover:text-navy hover:bg-navy/5 rounded-lg transition-colors" title="Edit">
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => removeStaff(lw.id, lw.name)}
+                                  className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Remove">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            {assignedCases.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-gray-50">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Assigned Cases</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {assignedCases.map(c => (
+                                    <span key={c.id} className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${PRIORITY_COLORS[c.priority]}`}>
+                                      {c.id} · {c.title.slice(0, 30)}{c.title.length > 30 ? '…' : ''}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {lawyers.length === 0 && (
+                    <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
+                      <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm font-medium">No staff added yet.</p>
+                      <p className="text-xs mt-1">Use the form to add your first team member.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Add form + stats */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="font-bold text-navy mb-3 flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-gold" /> Add Staff Member
+                  </h3>
+                  <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input placeholder="First name *" value={staffForm.firstName}
+                        onChange={e => setStaffForm(p => ({ ...p, firstName: e.target.value }))}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                      <input placeholder="Last name" value={staffForm.lastName}
+                        onChange={e => setStaffForm(p => ({ ...p, lastName: e.target.value }))}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                    </div>
+                    <input type="email" placeholder="Email address *" value={staffForm.email}
+                      onChange={e => setStaffForm(p => ({ ...p, email: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                    <input placeholder="Specialties (e.g. Litigation, Corporate, IP)" value={staffForm.specialties}
+                      onChange={e => setStaffForm(p => ({ ...p, specialties: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                    <div className="flex items-center gap-2">
+                      <input type="number" min="1" max="20" placeholder="8" value={staffForm.capacity}
+                        onChange={e => setStaffForm(p => ({ ...p, capacity: e.target.value }))}
+                        className="w-20 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                      <span className="text-xs text-gray-400">max concurrent cases</span>
+                    </div>
+                    <button
+                      onClick={addStaff}
+                      disabled={staffSaving || !staffForm.firstName || !staffForm.email}
+                      className="w-full bg-navy text-white text-sm font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-navy/90 transition-colors">
+                      <UserPlus className="w-4 h-4" />
+                      {staffSaving ? 'Adding…' : 'Add to Legal Team'}
+                    </button>
+                    {staffMsg && <p className="text-xs text-emerald-600 font-medium text-center">{staffMsg}</p>}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Team Overview</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Members', value: lawyers.length, color: 'text-navy' },
+                      { label: 'Available', value: lawyers.filter(l => l.activeCases < l.capacity && l.capacity > 0).length, color: 'text-emerald-600' },
+                      { label: 'Active Cases', value: lawyers.reduce((s, l) => s + l.activeCases, 0), color: 'text-gold' },
+                      { label: 'Avg Rating', value: lawyers.length ? (lawyers.reduce((s, l) => s + l.rating, 0) / lawyers.length).toFixed(1) : '—', color: 'text-navy' },
+                    ].map((s, i) => (
+                      <div key={i} className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
       </div>
     </div>
   );

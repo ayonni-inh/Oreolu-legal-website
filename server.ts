@@ -750,6 +750,45 @@ async function startServer() {
     res.json(scored);
   });
 
+  // Staff Management
+  app.post("/api/staff", (req, res) => {
+    const { firstName, lastName, email, specialties, capacity, adminName } = req.body;
+    const id = `lw-${Date.now()}`;
+    const userId = `staff-${Date.now()}`;
+    const name = `${firstName} ${lastName}`.trim();
+    const newLawyer = { id, name, specialties: specialties || [], activeCases: 0, capacity: capacity || 8, rating: 4.5 };
+    lawyers.push(newLawyer);
+    const newUser = { id: userId, firstName, lastName, email, appRole: 'Staff', clientId: userId, status: 'ACTIVE', permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyerId: id };
+    fallbackUsers.push(newUser);
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_ADDED', target: id, details: `Added ${name} to legal team` });
+    res.json({ success: true, lawyer: newLawyer, user: newUser });
+  });
+
+  app.patch("/api/staff/:id", (req, res) => {
+    const { id } = req.params;
+    const { name, specialties, capacity, adminName } = req.body;
+    const lw = lawyers.find(l => l.id === id);
+    if (!lw) return res.status(404).json({ error: "Staff member not found" });
+    if (name) lw.name = name;
+    if (specialties) lw.specialties = specialties;
+    if (capacity !== undefined) lw.capacity = capacity;
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_UPDATED', target: id, details: `Updated ${lw.name}` });
+    res.json({ success: true, lawyer: lw });
+  });
+
+  app.delete("/api/staff/:id", (req, res) => {
+    const { id } = req.params;
+    const { adminName } = req.body;
+    const idx = lawyers.findIndex(l => l.id === id);
+    if (idx === -1) return res.status(404).json({ error: "Staff member not found" });
+    const lw = lawyers[idx];
+    lawyers.splice(idx, 1);
+    // Unassign any cases this person was handling
+    cases.forEach(c => { if (c.assignedLawyerId === id) c.assignedLawyerId = null; });
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_REMOVED', target: id, details: `Removed ${lw.name} from legal team` });
+    res.json({ success: true });
+  });
+
   // Reminders
   app.get("/api/reminders", (req, res) => res.json(reminders));
   app.post("/api/reminders", (req, res) => {
