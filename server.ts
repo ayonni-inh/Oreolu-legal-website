@@ -3,6 +3,7 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
 import path from "path";
+import crypto from "crypto";
 import { createClient } from '@supabase/supabase-js';
 
 // Gemini AI Setup
@@ -246,6 +247,8 @@ let consultations: any[] = [
   { id: 'con-1', caseId: 'CASE-1001', clientName: 'Godwin Agidi', scheduledFor: new Date(Date.now()+1000*60*60*24*2).toISOString(), provider: 'Google Meet', joinUrl: 'https://meet.google.com/agidi-demo', status: 'SCHEDULED' },
   { id: 'con-2', caseId: 'CASE-1003', clientName: 'Lekki Logistics Ltd', scheduledFor: new Date(Date.now()+1000*60*60*24*1).toISOString(), provider: 'Zoom', joinUrl: 'https://zoom.us/j/agidi-intake', status: 'SCHEDULED' }
 ];
+
+let invitations: { token: string; userId: string; email: string; firstName: string; lastName: string; createdAt: Date; used: boolean }[] = [];
 
 let onboardingSubmissions: any[] = [];
 
@@ -751,17 +754,88 @@ async function startServer() {
   });
 
   // Staff Management
-  app.post("/api/staff", (req, res) => {
+  app.post("/api/staff", async (req, res) => {
     const { firstName, lastName, email, specialties, capacity, adminName } = req.body;
     const id = `lw-${Date.now()}`;
     const userId = `staff-${Date.now()}`;
     const name = `${firstName} ${lastName}`.trim();
     const newLawyer = { id, name, specialties: specialties || [], activeCases: 0, capacity: capacity || 8, rating: 4.5 };
     lawyers.push(newLawyer);
-    const newUser = { id: userId, firstName, lastName, email, appRole: 'Staff', clientId: userId, status: 'ACTIVE', permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyerId: id };
+    const newUser = { id: userId, firstName, lastName, email, appRole: 'Staff', clientId: userId, status: 'PENDING', permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyerId: id };
     fallbackUsers.push(newUser);
-    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_ADDED', target: id, details: `Added ${name} to legal team` });
-    res.json({ success: true, lawyer: newLawyer, user: newUser });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    invitations.push({ token, userId, email, firstName, lastName, createdAt: new Date(), used: false });
+
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : `http://localhost:${PORT}`;
+    const inviteUrl = `${baseUrl}/?invite=${token}`;
+
+    let emailSent = false;
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey && !resendKey.startsWith('re_123456789') && resendKey !== 'your_resend_api_key') {
+      try {
+        const resend = new Resend(resendKey);
+        await resend.emails.send({
+          from: 'onboarding@resend.dev',
+          to: email,
+          subject: `You've been invited to join OROELU GODWIN AGIDI & CO Staff Portal`,
+          html: `
+            <div style="font-family:Calibri,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+              <div style="background:#0a2540;padding:32px;text-align:center;">
+                <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">Staff Invitation</div>
+                <div style="color:#fff;font-size:20px;font-weight:bold;">OROELU GODWIN AGIDI & CO</div>
+              </div>
+              <div style="padding:40px 32px;">
+                <h2 style="color:#0a2540;font-size:22px;margin-bottom:12px;">Welcome, ${firstName}!</h2>
+                <p style="color:#374151;line-height:1.6;">You have been added as a staff member at <strong>OROELU GODWIN AGIDI & CO</strong>. Click the button below to set your password and activate your account.</p>
+                <div style="text-align:center;margin:32px 0;">
+                  <a href="${inviteUrl}" style="display:inline-block;background:#0a2540;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">Set Password & Activate Account</a>
+                </div>
+                <p style="color:#6b7280;font-size:12px;line-height:1.6;">If you did not expect this email, you can safely ignore it. This link will expire in 7 days and can only be used once.</p>
+              </div>
+              <div style="background:#f9fafb;padding:20px 32px;text-align:center;color:#9ca3af;font-size:11px;">
+                OROELU GODWIN AGIDI & CO · Lagos, Nigeria
+              </div>
+            </div>
+          `
+        });
+        emailSent = true;
+      } catch (e) {
+        console.warn('Failed to send staff invitation email:', e);
+      }
+    } else {
+      console.log(`[STAFF INVITE] No Resend key configured. Invite URL for ${email}: ${inviteUrl}`);
+    }
+
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_ADDED', target: id, details: `Added ${name} to legal team (invite ${emailSent ? 'emailed' : 'link generated'})` });
+    res.json({ success: true, lawyer: newLawyer, user: newUser, inviteUrl, emailSent });
+  });
+
+  app.get("/api/invite/:token", (req, res) => {
+    const inv = invitations.find(i => i.token === req.params.token && !i.used);
+    if (!inv) return res.status(404).json({ error: 'Invalid or expired invitation' });
+    res.json({ firstName: inv.firstName, lastName: inv.lastName, email: inv.email });
+  });
+
+  app.post("/api/invite/:token/activate", (req, res) => {
+    const { password } = req.body;
+    const inv = invitations.find(i => i.token === req.params.token && !i.used);
+    if (!inv) return res.status(404).json({ error: 'Invalid or expired invitation' });
+    const user = fallbackUsers.find(u => u.id === inv.userId);
+    if (user) {
+      (user as any).password = password;
+      user.status = 'ACTIVE';
+    }
+    inv.used = true;
+    recordActivity({ actorName: `${inv.firstName} ${inv.lastName}`, actorRole: 'Staff', category: 'ADMIN', action: 'ACCOUNT_ACTIVATED', target: inv.userId, details: `${inv.firstName} ${inv.lastName} activated their staff account` });
+    res.json({ success: true, user });
+  });
+
+  app.get("/api/clients", (req, res) => {
+    const clients = fallbackUsers.filter(u => u.appRole === 'Client' && u.status === 'ACTIVE');
+    res.json(clients);
   });
 
   app.patch("/api/staff/:id", (req, res) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import ServiceGrid from './components/ServiceGrid';
@@ -16,6 +16,7 @@ import WelcomeTour from './components/WelcomeTour';
 import Blog from './components/Blog';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import LegalChatbot from './components/LegalChatbot';
+import SetPasswordModal from './components/SetPasswordModal';
 
 const Forbidden = () => (
   <div className="pt-40 pb-60 px-6 text-center">
@@ -47,6 +48,13 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState('home');
   const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (token) setInviteToken(token);
+  }, []);
 
   const triggerDashboardRefresh = () => setDashboardRefreshTrigger(prev => prev + 1);
 
@@ -241,6 +249,16 @@ export default function App() {
       )}
 
       <LegalChatbot />
+
+      {inviteToken && (
+        <SetPasswordModal
+          token={inviteToken}
+          onSuccess={(userData) => {
+            setInviteToken(null);
+            handleLogin(userData);
+          }}
+        />
+      )}
     </div>
   );
 }

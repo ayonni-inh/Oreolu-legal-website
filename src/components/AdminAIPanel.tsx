@@ -46,6 +46,7 @@ export default function AdminAIPanel({ user }: Props) {
   const [activity, setActivity] = useState<any[]>([]);
   const [cases, setCases] = useState<any[]>([]);
   const [lawyers, setLawyers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [reminders, setReminders] = useState<any[]>([]);
   const [signatures, setSignatures] = useState<any[]>([]);
   const [consults, setConsults] = useState<any[]>([]);
@@ -71,10 +72,11 @@ export default function AdminAIPanel({ user }: Props) {
   const refreshAll = async () => {
     setLoading(true);
     try {
-      const [a, c, lw, rm, sg, co, fm, sb, doc, an] = await Promise.all([
+      const [a, c, lw, cl, rm, sg, co, fm, sb, doc, an] = await Promise.all([
         fetch(`/api/activity?role=Admin&limit=200`).then(r => r.json()),
         fetch(`/api/cases?role=Admin`).then(r => r.json()),
         fetch(`/api/lawyers`).then(r => r.json()),
+        fetch(`/api/clients`).then(r => r.json()),
         fetch(`/api/reminders`).then(r => r.json()),
         fetch(`/api/esign`).then(r => r.json()),
         fetch(`/api/consultations`).then(r => r.json()),
@@ -86,6 +88,7 @@ export default function AdminAIPanel({ user }: Props) {
       setActivity(Array.isArray(a) ? a : []);
       setCases(Array.isArray(c) ? c : []);
       setLawyers(Array.isArray(lw) ? lw : []);
+      setClients(Array.isArray(cl) ? cl : []);
       setReminders(Array.isArray(rm) ? rm : []);
       setSignatures(Array.isArray(sg) ? sg : []);
       setConsults(Array.isArray(co) ? co : []);
@@ -229,12 +232,16 @@ export default function AdminAIPanel({ user }: Props) {
   const [editForm, setEditForm] = useState<any>({});
   const [staffSaving, setStaffSaving] = useState(false);
   const [staffMsg, setStaffMsg] = useState('');
+  const [staffInviteLink, setStaffInviteLink] = useState('');
+  const [staffEmailSent, setStaffEmailSent] = useState<boolean | null>(null);
 
   const addStaff = async () => {
     if (!staffForm.firstName || !staffForm.email) return;
     setStaffSaving(true);
+    setStaffInviteLink('');
+    setStaffEmailSent(null);
     try {
-      await fetch('/api/staff', {
+      const res = await fetch('/api/staff', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...staffForm,
@@ -243,12 +250,14 @@ export default function AdminAIPanel({ user }: Props) {
           adminName
         })
       });
-      setStaffMsg('Staff member added successfully.');
+      const data = await res.json();
+      setStaffMsg('Staff member added.');
+      setStaffInviteLink(data.inviteUrl || '');
+      setStaffEmailSent(data.emailSent ?? false);
       setStaffForm({ firstName: '', lastName: '', email: '', specialties: '', capacity: '8' });
       refreshAll();
     } finally {
       setStaffSaving(false);
-      setTimeout(() => setStaffMsg(''), 3000);
     }
   };
 
@@ -811,9 +820,16 @@ export default function AdminAIPanel({ user }: Props) {
                     <option value="">Link to case (optional)</option>
                     {cases.map(c => <option key={c.id} value={c.id}>{c.id}</option>)}
                   </select>
-                  <input placeholder="Client name" value={newConsult.clientName}
+                  <select value={newConsult.clientName}
                     onChange={e => setNewConsult(p => ({ ...p, clientName: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    <option value="">Select registered client *</option>
+                    {clients.map(cl => (
+                      <option key={cl.id} value={`${cl.firstName} ${cl.lastName}`.trim()}>
+                        {cl.firstName} {cl.lastName} — {cl.email}
+                      </option>
+                    ))}
+                  </select>
                   <input type="datetime-local" value={newConsult.scheduledFor}
                     onChange={e => setNewConsult(p => ({ ...p, scheduledFor: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
@@ -1114,7 +1130,26 @@ export default function AdminAIPanel({ user }: Props) {
                       <UserPlus className="w-4 h-4" />
                       {staffSaving ? 'Adding…' : 'Add to Legal Team'}
                     </button>
-                    {staffMsg && <p className="text-xs text-emerald-600 font-medium text-center">{staffMsg}</p>}
+                    {staffMsg && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-emerald-600 font-medium text-center">{staffMsg}</p>
+                        {staffEmailSent === true && (
+                          <p className="text-xs text-center text-gray-500">Invitation email sent successfully.</p>
+                        )}
+                        {staffEmailSent === false && staffInviteLink && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Email not configured — share this link manually:</p>
+                            <div className="flex items-center gap-1">
+                              <input readOnly value={staffInviteLink}
+                                className="flex-1 text-[10px] bg-white border border-amber-200 rounded px-2 py-1 text-gray-600 truncate cursor-text" />
+                              <button onClick={() => navigator.clipboard.writeText(staffInviteLink)}
+                                className="text-[10px] font-bold bg-amber-600 text-white px-2 py-1 rounded whitespace-nowrap hover:bg-amber-700">Copy</button>
+                            </div>
+                            <p className="text-[9px] text-amber-600">Share with the staff member to let them set their password.</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
