@@ -1,9 +1,31 @@
-import { Users, Award, Globe, Building2, Quote } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { Users, Award, Globe, Building2, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+
+const awards = [
+  { img: '/award-cilrm-fellow.png', title: 'Fellow of the Institute', body: 'Chartered Institute of Loan & Risk Management of Nigeria', year: '2015' },
+  { img: '/award-nba-honour.png', title: 'Certificate of Honour', body: 'Nigerian Bar Association — Badagry Branch (Heritage Bar)', year: '2022' },
+  { img: '/award-ila-merit.png', title: 'Certificate of Merit — International Law Advocacy Award', body: 'International Law Association', year: '2024' },
+  { img: '/award-geda-adviser.png', title: 'Best Legal Adviser Award', body: 'General Electric Dealers Association of Nigeria', year: '2017' },
+  { img: '/award-icar-fellow.png', title: 'Fellow of the Institute', body: 'Institute of Chartered Administrators and Researchers of Nigeria', year: '2019' },
+  { img: '/award-nba-life-member.png', title: 'Honorary Life Membership Award', body: 'Nigerian Bar Association — Badagry Branch (Heritage Bar)', year: '2021' },
+  { img: '/award-voice-achievers.png', title: 'The Voice Achievers Award — African Impact Award', body: 'African Impact Organisation', year: '2024' },
+  { img: '/award-cilrm-honorary.png', title: 'Honorary Fellowship Award', body: 'Chartered Institute of Loan & Risk Management of Nigeria', year: '2026' },
+  { img: '/award-heritage-bar.png', title: 'Heritage Bar Personality of the Year', body: 'Nigerian Bar Association — Heritage Bar', year: '2025' },
+];
 
 export default function AboutUs() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
+  const [activeAward, setActiveAward] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const prevAward = useCallback(() => setActiveAward(i => (i - 1 + awards.length) % awards.length), []);
+  const nextAward = useCallback(() => setActiveAward(i => (i + 1) % awards.length), []);
+
+  useEffect(() => {
+    const timer = setInterval(nextAward, 4000);
+    return () => clearInterval(timer);
+  }, [nextAward]);
+
   const stats = [
     { label: "Years of Experience", value: "25+" },
     { label: "Successful Cases", value: "1,500+" },
@@ -178,6 +200,65 @@ export default function AboutUs() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Awards & Certifications Carousel */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-20">
+        <div className="text-center mb-10">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="h-px w-12 bg-gold"></div>
+            <span className="text-gold font-bold uppercase tracking-widest text-sm">Recognition</span>
+            <div className="h-px w-12 bg-gold"></div>
+          </div>
+          <h2 className="font-serif text-3xl md:text-4xl font-bold text-navy">Awards &amp; Certifications</h2>
+        </div>
+
+        <div className="relative max-w-3xl mx-auto">
+          {/* Slide */}
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-center bg-gray-50 p-6 min-h-[340px]">
+              <img
+                key={activeAward}
+                src={awards[activeAward].img}
+                alt={awards[activeAward].title}
+                className="max-h-72 w-auto object-contain drop-shadow-lg transition-opacity duration-500"
+              />
+            </div>
+            <div className="px-8 py-6 text-center border-t border-gray-100">
+              <p className="text-xs font-bold uppercase tracking-widest text-gold mb-1">{awards[activeAward].year}</p>
+              <h3 className="font-serif text-lg font-bold text-navy mb-1">{awards[activeAward].title}</h3>
+              <p className="text-gray-500 text-sm">{awards[activeAward].body}</p>
+            </div>
+          </div>
+
+          {/* Prev / Next arrows */}
+          <button
+            onClick={prevAward}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 w-10 h-10 bg-white border border-gray-200 rounded-full shadow flex items-center justify-center text-navy hover:bg-navy hover:text-white transition-colors"
+            aria-label="Previous award"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button
+            onClick={nextAward}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-5 w-10 h-10 bg-white border border-gray-200 rounded-full shadow flex items-center justify-center text-navy hover:bg-navy hover:text-white transition-colors"
+            aria-label="Next award"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          {/* Dot navigation */}
+          <div className="flex justify-center gap-2 mt-6">
+            {awards.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveAward(idx)}
+                className={`transition-all duration-300 rounded-full ${activeAward === idx ? 'w-8 h-2 bg-gold' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'}`}
+                aria-label={`Go to award ${idx + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
