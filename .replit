@@ -47,3 +47,6 @@ build = ["npm", "run", "build"]
 
 [userenv.shared]
 RESEND_FROM_EMAIL = "onboarding@resend.dev"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_KuBkG1Q-CvC1MXMvBfRTtA_D-9q4iW5"
+SUPABASE_SECRET_KEY = "sb_secret_nO2vlYOcMX2vufzG8v3VvQ_fVyarkxm"
+SUPABASE_JWKS_URL = "https://kbwdsugnqypqdzfmyvwx.supabase.co/auth/v1/.well-known/jwks.json"

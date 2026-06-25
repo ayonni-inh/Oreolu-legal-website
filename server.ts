@@ -20,14 +20,17 @@ try {
 
 // Supabase Setup
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
 
 let supabase: any = null;
 try {
   if (supabaseUrl && supabaseKey && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'))) {
     supabase = createClient(supabaseUrl, supabaseKey);
+    console.log('Supabase client initialized successfully.');
   } else if (supabaseUrl || supabaseKey) {
     console.warn('Supabase URL or Key is invalid. Using in-memory fallback.');
+  } else {
+    console.warn('Supabase credentials not set. Using in-memory fallback.');
   }
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
