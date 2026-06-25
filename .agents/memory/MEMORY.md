@@ -1,0 +1,2 @@
+- [Auth & Supabase persistence](auth-supabase.md) — real login/register via /api/auth/*; password hashing with Node crypto.scryptSync; graceful in-memory fallback when Supabase tables don't exist
+- [Invitation workflow](invitation-workflow.md) — staff/client invitations tracked in Invitation[] in-memory + Supabase; resend endpoint refreshes token; schema in supabase-schema.sql

@@ -3,7 +3,7 @@ import {
   Sparkles, Activity, ClipboardList, GitBranch, FolderLock, UserCog,
   Bell, FileSignature, Video, NotebookPen, Flag, BarChart3, Send,
   Search, RefreshCw, Plus, ShieldAlert, CheckCircle2, Clock, ExternalLink,
-  Bot, Zap, Users, Pencil, Trash2, UserPlus
+  Bot, Zap, Users, Pencil, Trash2, UserPlus, Mail, RotateCcw, Copy, XCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar,
@@ -14,7 +14,7 @@ interface Props { user: any }
 
 type TabId =
   | 'overview' | 'activity' | 'onboarding' | 'cases' | 'vault'
-  | 'assignment' | 'staffManagement' | 'reminders' | 'esign' | 'consult' | 'notes' | 'analytics';
+  | 'assignment' | 'staffManagement' | 'invitations' | 'reminders' | 'esign' | 'consult' | 'notes' | 'analytics';
 
 const TABS: { id: TabId; label: string; icon: any; }[] = [
   { id: 'overview', label: 'AI Overview', icon: Sparkles },
@@ -24,6 +24,7 @@ const TABS: { id: TabId; label: string; icon: any; }[] = [
   { id: 'vault', label: 'Document Vault', icon: FolderLock },
   { id: 'assignment', label: 'Lawyer Assignment', icon: UserCog },
   { id: 'staffManagement', label: 'Staff Management', icon: Users },
+  { id: 'invitations', label: 'Invitations', icon: Mail },
   { id: 'reminders', label: 'Reminders', icon: Bell },
   { id: 'esign', label: 'E-Signatures', icon: FileSignature },
   { id: 'consult', label: 'Video Consults', icon: Video },
@@ -54,6 +55,7 @@ export default function AdminAIPanel({ user }: Props) {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any | null>(null);
+  const [invitations, setInvitations] = useState<any[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [activitySearch, setActivitySearch] = useState('');
@@ -72,7 +74,7 @@ export default function AdminAIPanel({ user }: Props) {
   const refreshAll = async () => {
     setLoading(true);
     try {
-      const [a, c, lw, cl, rm, sg, co, fm, sb, doc, an] = await Promise.all([
+      const [a, c, lw, cl, rm, sg, co, fm, sb, doc, an, inv] = await Promise.all([
         fetch(`/api/activity?role=Admin&limit=200`).then(r => r.json()),
         fetch(`/api/cases?role=Admin`).then(r => r.json()),
         fetch(`/api/lawyers`).then(r => r.json()),
@@ -83,7 +85,8 @@ export default function AdminAIPanel({ user }: Props) {
         fetch(`/api/onboarding/forms`).then(r => r.json()),
         fetch(`/api/onboarding/submissions`).then(r => r.json()),
         fetch(`/api/documents?role=Admin`).then(r => r.json()),
-        fetch(`/api/analytics`).then(r => r.json())
+        fetch(`/api/analytics`).then(r => r.json()),
+        fetch(`/api/invitations?role=Admin`).then(r => r.json())
       ]);
       setActivity(Array.isArray(a) ? a : []);
       setCases(Array.isArray(c) ? c : []);
@@ -96,6 +99,7 @@ export default function AdminAIPanel({ user }: Props) {
       setSubmissions(Array.isArray(sb) ? sb : []);
       setDocuments(Array.isArray(doc) ? doc : []);
       setAnalytics(an && !an.error ? an : null);
+      setInvitations(Array.isArray(inv) ? inv : []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -324,6 +328,69 @@ export default function AdminAIPanel({ user }: Props) {
     });
     setNewConsult({ caseId: '', clientName: '', scheduledFor: '', provider: 'Google Meet' });
     refreshAll();
+  };
+
+  // ----- Invitations -----
+  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '', role: 'Staff' as 'Staff' | 'Client' });
+  const [inviteSaving, setInviteSaving] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteEmailSent, setInviteEmailSent] = useState<boolean | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const sendInvitation = async () => {
+    if (!inviteForm.firstName || !inviteForm.email) return;
+    setInviteSaving(true); setInviteMsg(''); setInviteLink(''); setInviteEmailSent(null);
+    try {
+      const endpoint = inviteForm.role === 'Client' ? '/api/auth/register' : '/api/staff';
+      let data: any;
+      if (inviteForm.role === 'Client') {
+        const tmpPassword = crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : Math.random().toString(36).slice(2, 14);
+        const res = await fetch(endpoint, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...inviteForm, password: tmpPassword, adminName })
+        });
+        data = await res.json();
+        setInviteMsg(`Client account created for ${inviteForm.firstName} ${inviteForm.lastName}.`);
+      } else {
+        const res = await fetch(endpoint, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...inviteForm, specialties: [], capacity: 8, adminName })
+        });
+        data = await res.json();
+        setInviteMsg(`${inviteForm.role} invitation sent to ${inviteForm.email}.`);
+        setInviteLink(data.inviteUrl || '');
+        setInviteEmailSent(data.emailSent ?? false);
+      }
+      setInviteForm({ firstName: '', lastName: '', email: '', role: 'Staff' });
+      refreshAll();
+    } catch { setInviteMsg('Failed to send invitation.'); }
+    finally { setInviteSaving(false); }
+  };
+
+  const resendInvitation = async (inv: any) => {
+    setResendingId(inv.id);
+    try {
+      const res = await fetch(`/api/invitations/${inv.id}/resend`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminName })
+      });
+      const data = await res.json();
+      setInvitations(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'PENDING', inviteUrl: data.inviteUrl } : i));
+      if (!data.emailSent && data.inviteUrl) {
+        await navigator.clipboard.writeText(data.inviteUrl).catch(() => {});
+        setCopiedId(inv.id);
+        setTimeout(() => setCopiedId(null), 3000);
+      }
+    } catch { /* ignore */ }
+    finally { setResendingId(null); }
+  };
+
+  const copyInviteLink = (url: string, id: string) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedId(id); setTimeout(() => setCopiedId(null), 3000);
+    });
   };
 
   // ----- Render helpers -----
@@ -1173,6 +1240,173 @@ export default function AdminAIPanel({ user }: Props) {
 
             </div>
           )}
+
+          {/* INVITATIONS */}
+          {activeTab === 'invitations' && (() => {
+            const pending = invitations.filter(i => i.status === 'PENDING');
+            const accepted = invitations.filter(i => i.status === 'ACCEPTED');
+            const expired = invitations.filter(i => i.status === 'EXPIRED');
+            return (
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: invitation list */}
+                <div className="lg:col-span-2 space-y-5">
+                  <div>
+                    <h2 className="font-serif text-2xl font-bold text-navy mb-1">Invitation Tracker</h2>
+                    <p className="text-sm text-gray-500 mb-4">Monitor all staff and client invitations. Resend links, copy URLs, and track acceptance in real time.</p>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-3 mb-5">
+                      {[
+                        { label: 'Total Sent', value: invitations.length, color: 'text-navy', bg: 'bg-navy/5' },
+                        { label: 'Pending', value: pending.length, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { label: 'Accepted', value: accepted.length, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                      ].map((s, i) => (
+                        <div key={i} className={`${s.bg} rounded-xl p-3 text-center`}>
+                          <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                          <p className="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {invitations.length === 0 ? (
+                    <div className="text-center py-16 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl">
+                      <Mail className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium">No invitations sent yet.</p>
+                      <p className="text-xs mt-1">Use the form to invite a staff member or client.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {invitations.map(inv => {
+                        const isExpired = inv.status === 'EXPIRED' || (inv.expiresAt && new Date(inv.expiresAt) < new Date() && inv.status !== 'ACCEPTED');
+                        const status = inv.status === 'ACCEPTED' ? 'ACCEPTED' : isExpired ? 'EXPIRED' : 'PENDING';
+                        const statusCls = status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : status === 'EXPIRED' ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-amber-100 text-amber-700 border-amber-200';
+                        const roleCls = inv.role === 'Staff' ? 'bg-navy/10 text-navy' : 'bg-blue-50 text-blue-700';
+                        return (
+                          <div key={inv.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex items-start gap-4">
+                            <div className="w-10 h-10 bg-navy/5 rounded-full flex items-center justify-center shrink-0">
+                              <Mail className="w-5 h-5 text-navy/40" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-navy text-sm">{inv.firstName} {inv.lastName}</p>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${roleCls}`}>{inv.role}</span>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${statusCls}`}>{status}</span>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-0.5 truncate">{inv.email}</p>
+                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                <span className="text-[10px] text-gray-400">
+                                  Invited {inv.invitedBy ? `by ${inv.invitedBy} ·` : ''} {new Date(inv.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </span>
+                                {inv.status === 'ACCEPTED' && inv.acceptedAt && (
+                                  <span className="text-[10px] text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Accepted {new Date(inv.acceptedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {inv.inviteUrl && status !== 'ACCEPTED' && (
+                                <button
+                                  onClick={() => copyInviteLink(inv.inviteUrl, inv.id)}
+                                  title="Copy invite link"
+                                  className="p-2 text-gray-400 hover:text-navy hover:bg-navy/5 rounded-lg transition-colors"
+                                >
+                                  {copiedId === inv.id ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                              )}
+                              {status !== 'ACCEPTED' && (
+                                <button
+                                  onClick={() => resendInvitation(inv)}
+                                  disabled={resendingId === inv.id}
+                                  title="Resend invitation"
+                                  className="p-2 text-gray-400 hover:text-gold hover:bg-gold/5 rounded-lg transition-colors disabled:opacity-40"
+                                >
+                                  <RotateCcw className={`w-4 h-4 ${resendingId === inv.id ? 'animate-spin' : ''}`} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Send new invitation */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-bold text-navy mb-3 flex items-center gap-2">
+                      <UserPlus className="w-4 h-4 text-gold" /> Send Invitation
+                    </h3>
+                    <div className="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
+                      <div className="grid grid-cols-2 gap-2">
+                        <input placeholder="First name *" value={inviteForm.firstName}
+                          onChange={e => setInviteForm(p => ({ ...p, firstName: e.target.value }))}
+                          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                        <input placeholder="Last name" value={inviteForm.lastName}
+                          onChange={e => setInviteForm(p => ({ ...p, lastName: e.target.value }))}
+                          className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                      </div>
+                      <input type="email" placeholder="Email address *" value={inviteForm.email}
+                        onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white" />
+                      <div>
+                        <label className="text-xs font-medium text-gray-600 block mb-1">Role</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(['Staff', 'Client'] as const).map(r => (
+                            <button key={r} onClick={() => setInviteForm(p => ({ ...p, role: r }))}
+                              className={`py-2 rounded-lg text-xs font-bold border transition-all ${inviteForm.role === r ? 'bg-navy text-white border-navy' : 'bg-white text-gray-500 border-gray-200 hover:border-navy'}`}>
+                              {r === 'Staff' ? '⚖️ Staff' : '🤝 Client'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={sendInvitation}
+                        disabled={inviteSaving || !inviteForm.firstName || !inviteForm.email}
+                        className="w-full bg-navy text-white text-sm font-bold px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-navy/90 transition-colors">
+                        <Send className="w-4 h-4" />
+                        {inviteSaving ? 'Sending…' : `Send ${inviteForm.role} Invitation`}
+                      </button>
+
+                      {inviteMsg && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-emerald-600 font-medium text-center">{inviteMsg}</p>
+                          {inviteEmailSent === false && inviteLink && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Share this link manually:</p>
+                              <div className="flex items-center gap-1">
+                                <input readOnly value={inviteLink}
+                                  className="flex-1 text-[10px] bg-white border border-amber-200 rounded px-2 py-1 text-gray-600 truncate cursor-text" />
+                                <button onClick={() => { navigator.clipboard.writeText(inviteLink); }}
+                                  className="text-[10px] font-bold bg-amber-600 text-white px-2 py-1 rounded whitespace-nowrap hover:bg-amber-700">Copy</button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Overview</h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: 'Staff', value: invitations.filter(i => i.role === 'Staff').length, color: 'text-navy' },
+                        { label: 'Clients', value: invitations.filter(i => i.role === 'Client').length, color: 'text-blue-600' },
+                        { label: 'Expired', value: expired.length, color: 'text-gray-400' },
+                        { label: 'Accept Rate', value: invitations.length ? `${Math.round((accepted.length / invitations.length) * 100)}%` : '—', color: 'text-emerald-600' },
+                      ].map((s, i) => (
+                        <div key={i} className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                          <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+                          <p className="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
       </div>
     </div>

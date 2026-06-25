@@ -61,32 +61,41 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
     setStep(2);
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    
-    const generatedId = '#' + Math.floor(10000 + Math.random() * 90000);
-    setFormData(prev => ({ ...prev, clientId: generatedId }));
-
-    // Simulate API call for registration
-    setTimeout(() => {
-      // 5% chance of failure for demonstration
-      if (Math.random() > 0.95) {
-        setError("Registration temporarily unavailable. Please try again in a moment.");
-        setIsSubmitting(false);
-      } else {
-        setIsSubmitting(false);
-        setStep(3);
-        
-        // Include status in reported data
-        const finalData = { ...formData, status: 'PENDING', clientId: generatedId };
-        
-        // Send welcome email
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          companyName: formData.companyName,
+          industry: formData.industry,
+          jobTitle: formData.jobTitle,
+          appRole: formData.appRole
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Registration failed. Please try again.');
+        return;
+      }
+      setFormData(prev => ({ ...prev, clientId: data.user?.clientId || prev.clientId }));
+      setStep(3);
+      try {
         const template = emailTemplates.welcome(formData.firstName);
         sendEmailNotification(formData.email, template.subject, template.html);
-      }
-    }, 1500);
+      } catch { /* email is optional */ }
+    } catch {
+      setError('Unable to connect. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetAndClose = () => {

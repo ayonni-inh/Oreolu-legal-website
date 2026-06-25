@@ -6,6 +6,21 @@ import path from "path";
 import crypto from "crypto";
 import { createClient } from '@supabase/supabase-js';
 
+// Password helpers (Node built-in crypto — no extra deps)
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+function verifyPassword(password: string, stored: string): boolean {
+  try {
+    const [salt, hash] = stored.split(':');
+    if (!salt || !hash) return false;
+    const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(derived, 'hex'), Buffer.from(hash, 'hex'));
+  } catch { return false; }
+}
+
 // Gemini AI Setup
 let genAI: any = null;
 try {
@@ -251,7 +266,14 @@ let consultations: any[] = [
   { id: 'con-2', caseId: 'CASE-1003', clientName: 'Lekki Logistics Ltd', scheduledFor: new Date(Date.now()+1000*60*60*24*1).toISOString(), provider: 'Zoom', joinUrl: 'https://zoom.us/j/agidi-intake', status: 'SCHEDULED' }
 ];
 
-let invitations: { token: string; userId: string; email: string; firstName: string; lastName: string; createdAt: Date; used: boolean }[] = [];
+interface Invitation {
+  id: string; token: string; userId: string; email: string;
+  firstName: string; lastName: string; role: string;
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED';
+  invitedBy: string; inviteUrl: string;
+  createdAt: Date; acceptedAt?: Date; expiresAt: Date;
+}
+let invitations: Invitation[] = [];
 
 let onboardingSubmissions: any[] = [];
 
@@ -797,16 +819,39 @@ async function startServer() {
     const name = `${firstName} ${lastName}`.trim();
     const newLawyer = { id, name, specialties: specialties || [], activeCases: 0, capacity: capacity || 8, rating: 4.5 };
     lawyers.push(newLawyer);
-    const newUser = { id: userId, firstName, lastName, email, appRole: 'Staff', clientId: userId, status: 'PENDING', permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyerId: id };
+    const newUser: any = { id: userId, firstName, lastName, email, appRole: 'Staff', clientId: userId, status: 'PENDING', permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyerId: id };
     fallbackUsers.push(newUser);
 
     const token = crypto.randomBytes(32).toString('hex');
-    invitations.push({ token, userId, email, firstName, lastName, createdAt: new Date(), used: false });
-
+    const invId = `inv-${Date.now()}`;
     const baseUrl = process.env.REPLIT_DEV_DOMAIN
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
       : `http://localhost:${PORT}`;
     const inviteUrl = `${baseUrl}/?invite=${token}`;
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const inv: Invitation = {
+      id: invId, token, userId, email, firstName, lastName,
+      role: 'Staff', status: 'PENDING', invitedBy: adminName || 'Admin',
+      inviteUrl, createdAt: new Date(), expiresAt
+    };
+    invitations.unshift(inv);
+
+    // Persist to Supabase if available
+    if (supabase) {
+      try {
+        await supabase.from('users').upsert([{
+          id: userId, first_name: firstName, last_name: lastName, email,
+          app_role: 'Staff', status: 'PENDING',
+          permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyer_id: id
+        }]);
+        await supabase.from('invitations').insert([{
+          id: invId, token, user_id: userId, email, first_name: firstName, last_name: lastName,
+          role: 'Staff', status: 'PENDING', invited_by: adminName || 'Admin',
+          invite_url: inviteUrl, expires_at: expiresAt.toISOString()
+        }]);
+      } catch (e) { console.warn('Supabase persist invitation failed (tables may not exist):', (e as any)?.message); }
+    }
 
     let emailSent = false;
     const resendKey = process.env.RESEND_API_KEY;
@@ -814,7 +859,7 @@ async function startServer() {
       try {
         const resend = new Resend(resendKey);
         await resend.emails.send({
-          from: 'onboarding@resend.dev',
+          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
           to: email,
           subject: `You've been invited to join OROELU GODWIN AGIDI & CO Staff Portal`,
           html: `
@@ -838,38 +883,244 @@ async function startServer() {
           `
         });
         emailSent = true;
-      } catch (e) {
-        console.warn('Failed to send staff invitation email:', e);
-      }
-    } else {
-      console.log(`[STAFF INVITE] No Resend key configured. Invite URL for ${email}: ${inviteUrl}`);
+      } catch (e) { console.warn('Failed to send staff invitation email:', e); }
     }
 
     recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_ADDED', target: id, details: `Added ${name} to legal team (invite ${emailSent ? 'emailed' : 'link generated'})` });
-    res.json({ success: true, lawyer: newLawyer, user: newUser, inviteUrl, emailSent });
+    res.json({ success: true, lawyer: newLawyer, user: newUser, inviteUrl, emailSent, invitationId: invId });
   });
 
-  app.get("/api/invite/:token", (req, res) => {
-    const inv = invitations.find(i => i.token === req.params.token && !i.used);
+  app.get("/api/invite/:token", async (req, res) => {
+    const token = req.params.token;
+    // Check Supabase first
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('invitations')
+          .select('*').eq('token', token).eq('status', 'PENDING').single();
+        if (data) {
+          if (new Date(data.expires_at) < new Date()) {
+            await supabase.from('invitations').update({ status: 'EXPIRED' }).eq('token', token);
+            return res.status(404).json({ error: 'Invitation has expired' });
+          }
+          return res.json({ firstName: data.first_name, lastName: data.last_name, email: data.email, role: data.role });
+        }
+      } catch { /* fall through to in-memory */ }
+    }
+    const inv = invitations.find(i => i.token === token && i.status === 'PENDING');
     if (!inv) return res.status(404).json({ error: 'Invalid or expired invitation' });
-    res.json({ firstName: inv.firstName, lastName: inv.lastName, email: inv.email });
+    if (inv.expiresAt < new Date()) {
+      inv.status = 'EXPIRED';
+      return res.status(404).json({ error: 'Invitation has expired' });
+    }
+    res.json({ firstName: inv.firstName, lastName: inv.lastName, email: inv.email, role: inv.role });
   });
 
-  app.post("/api/invite/:token/activate", (req, res) => {
+  app.post("/api/invite/:token/activate", async (req, res) => {
     const { password } = req.body;
-    const inv = invitations.find(i => i.token === req.params.token && !i.used);
+    const token = req.params.token;
+    const passwordHash = hashPassword(password);
+
+    // Try Supabase
+    if (supabase) {
+      try {
+        const { data: inv } = await supabase.from('invitations')
+          .select('*').eq('token', token).eq('status', 'PENDING').single();
+        if (inv) {
+          await supabase.from('invitations').update({ status: 'ACCEPTED', accepted_at: new Date().toISOString() }).eq('token', token);
+          await supabase.from('users').update({ status: 'ACTIVE', password_hash: passwordHash }).eq('id', inv.user_id);
+          const { data: user } = await supabase.from('users').select('*').eq('id', inv.user_id).single();
+          const mappedUser = user ? {
+            id: user.id, firstName: user.first_name, lastName: user.last_name,
+            email: user.email, appRole: user.app_role, status: user.status,
+            companyName: user.company_name, clientId: user.client_id
+          } : null;
+          // Sync back to in-memory
+          const memInv = invitations.find(i => i.token === token);
+          if (memInv) { memInv.status = 'ACCEPTED'; memInv.acceptedAt = new Date(); }
+          const memUser = fallbackUsers.find(u => u.id === inv.user_id);
+          if (memUser) { memUser.status = 'ACTIVE'; (memUser as any).passwordHash = passwordHash; }
+          recordActivity({ actorName: `${inv.first_name} ${inv.last_name}`, actorRole: 'Staff', category: 'ADMIN', action: 'ACCOUNT_ACTIVATED', target: inv.user_id, details: `${inv.first_name} ${inv.last_name} activated their staff account` });
+          return res.json({ success: true, user: mappedUser });
+        }
+      } catch { /* fall through */ }
+    }
+
+    // In-memory fallback
+    const inv = invitations.find(i => i.token === token && i.status === 'PENDING');
     if (!inv) return res.status(404).json({ error: 'Invalid or expired invitation' });
     const user = fallbackUsers.find(u => u.id === inv.userId);
-    if (user) {
-      (user as any).password = password;
-      user.status = 'ACTIVE';
-    }
-    inv.used = true;
+    if (user) { (user as any).passwordHash = passwordHash; user.status = 'ACTIVE'; }
+    inv.status = 'ACCEPTED';
+    inv.acceptedAt = new Date();
     recordActivity({ actorName: `${inv.firstName} ${inv.lastName}`, actorRole: 'Staff', category: 'ADMIN', action: 'ACCOUNT_ACTIVATED', target: inv.userId, details: `${inv.firstName} ${inv.lastName} activated their staff account` });
     res.json({ success: true, user });
   });
 
-  app.get("/api/clients", (req, res) => {
+  // List all invitations (admin only)
+  app.get("/api/invitations", async (req, res) => {
+    if (req.query.role !== 'Admin') return res.status(403).json({ error: 'Admin only' });
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('invitations').select('*').order('created_at', { ascending: false });
+        if (data && data.length >= 0) {
+          return res.json(data.map((i: any) => ({
+            id: i.id, token: i.token, userId: i.user_id, email: i.email,
+            firstName: i.first_name, lastName: i.last_name, role: i.role,
+            status: i.status, invitedBy: i.invited_by, inviteUrl: i.invite_url,
+            createdAt: i.created_at, acceptedAt: i.accepted_at, expiresAt: i.expires_at
+          })));
+        }
+      } catch { /* fall through */ }
+    }
+    res.json(invitations.map(i => ({ ...i, createdAt: i.createdAt.toISOString(), expiresAt: i.expiresAt.toISOString(), acceptedAt: i.acceptedAt?.toISOString() })));
+  });
+
+  // Resend invitation
+  app.post("/api/invitations/:id/resend", async (req, res) => {
+    const { adminName } = req.body;
+    const inv = invitations.find(i => i.id === req.params.id);
+    if (!inv) return res.status(404).json({ error: 'Invitation not found' });
+
+    // Generate new token + reset expiry
+    const newToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : `http://localhost:${PORT}`;
+    const newInviteUrl = `${baseUrl}/?invite=${newToken}`;
+    inv.token = newToken; inv.inviteUrl = newInviteUrl;
+    inv.status = 'PENDING'; inv.expiresAt = expiresAt; inv.acceptedAt = undefined;
+
+    if (supabase) {
+      try {
+        await supabase.from('invitations').update({ token: newToken, invite_url: newInviteUrl, status: 'PENDING', expires_at: expiresAt.toISOString(), accepted_at: null }).eq('id', req.params.id);
+      } catch { /* ignore */ }
+    }
+
+    let emailSent = false;
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey && !resendKey.startsWith('re_123456789')) {
+      try {
+        const resend = new Resend(resendKey);
+        await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
+          to: inv.email,
+          subject: `Your invitation to OROELU GODWIN AGIDI & CO — updated link`,
+          html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+            <div style="background:#0a2540;padding:32px;text-align:center;border-radius:12px 12px 0 0;">
+              <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;">Staff Invitation (Resent)</div>
+              <div style="color:#fff;font-size:20px;font-weight:bold;margin-top:8px;">OROELU GODWIN AGIDI & CO</div>
+            </div>
+            <div style="padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
+              <p>Hi ${inv.firstName}, here is your updated activation link:</p>
+              <div style="text-align:center;margin:24px 0;">
+                <a href="${newInviteUrl}" style="background:#0a2540;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:bold;">Activate Account</a>
+              </div>
+              <p style="color:#6b7280;font-size:12px;">This link expires in 7 days.</p>
+            </div>
+          </div>`
+        });
+        emailSent = true;
+      } catch { /* ignore */ }
+    }
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'INVITE_RESENT', target: inv.userId, details: `Resent invitation to ${inv.email}` });
+    res.json({ success: true, inviteUrl: newInviteUrl, emailSent });
+  });
+
+  // Auth — Register
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { firstName, lastName, email, password, companyName, industry, jobTitle, appRole } = req.body;
+      if (!firstName || !lastName || !email || !password) return res.status(400).json({ error: 'Missing required fields' });
+
+      // Check duplicate email
+      const existingMem = fallbackUsers.find(u => u.email === email);
+      if (existingMem) return res.status(409).json({ error: 'An account with this email already exists' });
+
+      if (supabase) {
+        const { data: existing } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
+        if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+      }
+
+      const id = `client-${Date.now()}`;
+      const clientId = '#' + Math.floor(10000 + Math.random() * 90000);
+      const passwordHash = hashPassword(password);
+      const role = appRole || 'Client';
+      const status = role === 'Admin' ? 'PENDING' : (role === 'Staff' ? 'PENDING' : 'ACTIVE');
+
+      const newUser: any = { id, firstName, lastName, email, passwordHash, appRole: role, companyName, industry, jobTitle, clientId, status, permissions: [] };
+      fallbackUsers.push(newUser);
+
+      if (supabase) {
+        try {
+          await supabase.from('users').insert([{
+            id, first_name: firstName, last_name: lastName, email, password_hash: passwordHash,
+            app_role: role, company_name: companyName, industry, job_title: jobTitle,
+            client_id: clientId, status, permissions: []
+          }]);
+        } catch (e) { console.warn('Supabase register persist failed:', (e as any)?.message); }
+      }
+
+      recordActivity({ actorId: id, actorName: `${firstName} ${lastName}`, actorRole: role, category: 'AUTH', action: 'USER_REGISTERED', target: clientId, details: `New ${role} registered: ${email}` });
+      const { passwordHash: _, ...safeUser } = newUser;
+      res.status(201).json({ success: true, user: safeUser });
+    } catch (error) {
+      console.error('Register error:', error);
+      res.status(500).json({ error: 'Registration failed' });
+    }
+  });
+
+  // Auth — Login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+      let user: any = null;
+
+      // Check Supabase
+      if (supabase) {
+        try {
+          const { data } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+          if (data) {
+            user = {
+              id: data.id, firstName: data.first_name, lastName: data.last_name,
+              email: data.email, passwordHash: data.password_hash, appRole: data.app_role,
+              companyName: data.company_name, industry: data.industry, jobTitle: data.job_title,
+              clientId: data.client_id, status: data.status, permissions: data.permissions || []
+            };
+          }
+        } catch { /* fall through */ }
+      }
+
+      // Fall back to in-memory
+      if (!user) user = fallbackUsers.find(u => u.email === email);
+
+      if (!user) return res.status(401).json({ error: 'No account found with this email address' });
+      if (user.status === 'PENDING') return res.status(403).json({ error: 'PENDING', message: 'Your account is pending approval' });
+      if (user.status === 'BLOCKED') return res.status(403).json({ error: 'BLOCKED', message: 'This account has been suspended' });
+
+      const storedHash = user.passwordHash || (user as any).password_hash;
+      if (storedHash && !verifyPassword(password, storedHash)) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
+
+      recordActivity({ actorId: user.id, actorName: `${user.firstName} ${user.lastName}`, actorRole: user.appRole, category: 'AUTH', action: 'USER_LOGIN', target: user.email, details: `${user.appRole} logged in` });
+      const { passwordHash: _h, password_hash: _p, ...safeUser } = user;
+      res.json({ success: true, user: safeUser });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.get("/api/clients", async (req, res) => {
+    if (supabase) {
+      try {
+        const { data } = await supabase.from('users').select('*').eq('app_role', 'Client').eq('status', 'ACTIVE');
+        if (data && data.length >= 0) {
+          return res.json(data.map((u: any) => ({ id: u.id, firstName: u.first_name, lastName: u.last_name, email: u.email, appRole: u.app_role, companyName: u.company_name, clientId: u.client_id, status: u.status })));
+        }
+      } catch { /* fall through */ }
+    }
     const clients = fallbackUsers.filter(u => u.appRole === 'Client' && u.status === 'ACTIVE');
     res.json(clients);
   });

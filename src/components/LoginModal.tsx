@@ -41,85 +41,29 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: FormEvent) => {
+  const handleLoginSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-    
-    // Simulate API call for login
-    setTimeout(async () => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'PENDING') { setView('pending-approval'); return; }
+        if (data.error === 'BLOCKED') { setView('blocked'); return; }
+        setError(data.error || 'Login failed. Please check your credentials.');
+        return;
+      }
+      onSuccess(data.user);
+    } catch {
+      setError('Unable to connect. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      
-      try {
-        // Fetch users to find out status
-        const res = await fetch(`/api/users?role=Admin`);
-        const allUsers = await res.json();
-        const foundUser = allUsers.find((u: any) => u.email === email);
-
-        if (foundUser) {
-           if (foundUser.status === 'PENDING') {
-             setView('pending-approval');
-             return;
-           }
-           if (foundUser.status === 'BLOCKED') {
-             setView('blocked');
-             return;
-           }
-           onSuccess(foundUser);
-           return;
-        }
-      } catch (e) {
-        console.warn("Could not check status, proceeding with default logic");
-      }
-
-      // Determine role based on email or selections
-      let userData: any = {
-        firstName: 'Demo',
-        lastName: 'User',
-        companyName: 'Acme Corp',
-        clientId: '#88392',
-        email: email,
-        appRole: 'Client',
-        status: 'ACTIVE'
-      };
-
-      if (email === 'admin@firm.com') {
-        userData = {
-          id: 'admin-1',
-          firstName: 'John',
-          lastName: 'Admin',
-          companyName: 'Agidi Tech Firm',
-          clientId: 'ADMIN-SYS',
-          email: 'admin@firm.com',
-          appRole: 'Admin',
-          status: 'ACTIVE'
-        };
-      } else if (email === 'sarah@firm.com') {
-        userData = {
-          id: 'legal-1',
-          firstName: 'Sarah',
-          lastName: 'Smith',
-          companyName: 'Agidi Tech Firm',
-          clientId: 'STAFF-001',
-          email: 'sarah@firm.com',
-          appRole: 'Staff',
-          status: 'ACTIVE'
-        };
-      } else if (email === 'ogouifemi@gmail.com') {
-        userData = {
-          id: 'client-1',
-          firstName: 'Godwin',
-          lastName: 'Agidi',
-          companyName: 'Agidi Tech',
-          clientId: 'client-1',
-          email: 'ogouifemi@gmail.com',
-          appRole: 'Client',
-          status: 'ACTIVE'
-        };
-      }
-
-      onSuccess(userData);
-    }, 1000);
+    }
   };
 
   const quickLogin = (role: 'Client' | 'Staff' | 'Admin') => {
