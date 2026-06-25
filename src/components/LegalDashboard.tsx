@@ -271,6 +271,12 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
     }
   };
 
+  const [approvalToast, setApprovalToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setApprovalToast({ msg, type });
+    setTimeout(() => setApprovalToast(null), 4000);
+  };
+
   const handleApprove = async (apptId: string) => {
     try {
       const res = await fetch(`/api/appointments/${apptId}/status`, {
@@ -279,20 +285,22 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         body: JSON.stringify({ 
           status: 'APPROVED', 
           role: 'Admin',
-          adminName: `${user.firstName} ${user.lastName}`
+          adminName: `${user.firstName} ${user.lastName}`,
+          notifyClient: true
         })
       });
       if (res.ok) {
         setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: 'APPROVED' } : a));
         setStats(prev => ({ ...prev, pendingVerifications: Math.max(0, prev.pendingVerifications - 1) }));
-        alert("Appointment successfully verified and confirmed.");
+        showToast('Appointment confirmed and client notified.');
         fetchLogs();
       } else {
         const data = await res.json();
-        alert(`Error: ${data.error}`);
+        showToast(`Error: ${data.error}`, 'error');
       }
     } catch (error) {
       console.error("Error approving appointment:", error);
+      showToast('Failed to approve appointment.', 'error');
     }
   };
 
@@ -310,11 +318,14 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
       if (res.ok) {
         setDocuments(prev => prev.map(d => d.id === docId ? { ...d, status: 'APPROVED' } : d));
         setStats(prev => ({ ...prev, pendingDocs: Math.max(0, prev.pendingDocs - 1) }));
-        alert("Document officially verified and pushed to legal record.");
+        showToast('Document verified and pushed to legal record.');
         fetchLogs();
+      } else {
+        showToast('Failed to verify document.', 'error');
       }
     } catch (e) {
       console.error(e);
+      showToast('Network error. Please retry.', 'error');
     }
   };
 

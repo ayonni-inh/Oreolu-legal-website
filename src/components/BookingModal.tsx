@@ -124,15 +124,27 @@ export default function BookingModal({ service: initialService, onClose, isLogge
     }
   };
 
-  const dates = [
-    { day: 'Mon', date: 'Oct 12', slots: 4 },
-    { day: 'Tue', date: 'Oct 13', slots: 2 },
-    { day: 'Wed', date: 'Oct 14', slots: 5 },
-    { day: 'Thu', date: 'Oct 15', slots: 1 },
-    { day: 'Fri', date: 'Oct 16', slots: 3 },
-    { day: 'Sat', date: 'Oct 17', slots: 0 },
-  ];
-  const times = ['09:00 AM', '10:30 AM', '01:00 PM', '02:30 PM', '03:30 PM', '04:30 PM'];
+  // Generate next 6 real weekdays from today
+  const dates = (() => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const results = [];
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let d = new Date(today); d.setDate(d.getDate() + 1); // start tomorrow
+    while (results.length < 6) {
+      const dow = d.getDay();
+      const isSat = dow === 6;
+      results.push({
+        day: days[dow],
+        date: `${months[d.getMonth()]} ${d.getDate()}`,
+        fullDate: d.toISOString().slice(0, 10),
+        slots: isSat ? 0 : [4, 2, 5, 1, 3, 4][results.length] || 3
+      });
+      d = new Date(d); d.setDate(d.getDate() + 1);
+    }
+    return results;
+  })();
+  const times = ['09:00 AM', '10:30 AM', '11:00 AM', '01:00 PM', '02:30 PM', '04:00 PM'];
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">

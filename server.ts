@@ -116,6 +116,41 @@ let fallbackUsers = [
   }
 ];
 
+// Helper: find user email by userId or clientId
+async function getUserEmail(userId: string): Promise<{ email: string; firstName: string; lastName: string } | null> {
+  if (supabase) {
+    try {
+      const { data } = await supabase.from('users').select('email, first_name, last_name').or(`id.eq.${userId},client_id.eq.${userId}`).maybeSingle();
+      if (data) return { email: data.email, firstName: data.first_name, lastName: data.last_name };
+    } catch { /* fall through */ }
+  }
+  const u = fallbackUsers.find(u => u.id === userId || u.clientId === userId);
+  if (u) return { email: u.email, firstName: u.firstName, lastName: u.lastName };
+  return null;
+}
+
+// Helper: send email via Resend (no-op if unconfigured)
+async function sendEmail(to: string | string[], subject: string, html: string) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || key.startsWith('re_123456789') || key === 'your_resend_api_key') return false;
+  try {
+    const resend = new Resend(key);
+    const recipients = Array.isArray(to) ? to : [to];
+    for (const addr of recipients.slice(0, 5)) {
+      await resend.emails.send({ from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev', to: addr, subject, html });
+    }
+    return true;
+  } catch (e) { console.warn('Email send failed:', (e as any)?.message); return false; }
+}
+
+// Helper: collect all admin/staff notification emails
+function getStaffEmails(): string[] {
+  return [...new Set([
+    ...fallbackUsers.filter(u => u.appRole === 'Admin' || u.appRole === 'Staff').map(u => u.email),
+    process.env.FIRM_EMAIL || ''
+  ].filter(Boolean))];
+}
+
 let systemLogs: any[] = [
   { id: 'log-1', timestamp: new Date().toISOString(), action: 'SYSTEM_BOOT', admin: 'SYSTEM', details: 'Law Firm Portal initialized with Super Admin protocol.' }
 ];
@@ -437,23 +472,38 @@ async function startServer() {
         details: `${serviceTitle} booked for ${date} ${time}`
       });
 
+      let savedAppt: any;
       if (supabase) {
-        const { data, error } = await supabase
-          .from('appointments')
-          .insert([newAppointment])
-          .select();
-          
+        const { data, error } = await supabase.from('appointments').insert([newAppointment]).select();
         if (error) throw error;
-        return res.status(201).json(data[0]);
+        savedAppt = data[0];
       } else {
-        // Fallback
-        const appointmentWithId = {
-          ...newAppointment,
-          id: Math.random().toString(36).substr(2, 9)
-        };
-        fallbackAppointments.unshift(appointmentWithId);
-        return res.status(201).json(appointmentWithId);
+        savedAppt = { ...newAppointment, id: Math.random().toString(36).substr(2, 9) };
+        fallbackAppointments.unshift(savedAppt);
       }
+
+      // Email notifications: notify admin/staff of new booking request
+      if (defaultStatus === 'PENDING_ADMIN_APPROVAL') {
+        const staffEmails = getStaffEmails();
+        const clientInfo = await getUserEmail(userId);
+        const clientDisplay = clientInfo ? `${clientInfo.firstName} ${clientInfo.lastName} (${clientInfo.email})` : (requesterName || userId);
+        const notifyHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <div style="background:#0a2540;padding:24px 32px;"><div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">New Appointment Request</div>
+          <div style="color:#fff;font-size:18px;font-weight:bold;margin-top:6px;">OROELU GODWIN AGIDI & CO</div></div>
+          <div style="padding:32px;">
+            <p style="color:#374151;margin-bottom:16px;">A new consultation request requires your approval:</p>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;width:130px;">Client</td><td style="padding:8px 0;font-weight:bold;color:#0a2540;font-size:13px;">${clientDisplay}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;">Service</td><td style="padding:8px 0;font-weight:bold;color:#0a2540;font-size:13px;">${serviceTitle}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;">Date & Time</td><td style="padding:8px 0;font-weight:bold;color:#0a2540;font-size:13px;">${date} at ${time}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:13px;">Tracking No.</td><td style="padding:8px 0;font-weight:bold;color:#0a2540;font-size:13px;">${newAppointment.tracking_number}</td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:12px;margin-top:24px;">Log in to the admin portal to approve or reschedule this request.</p>
+          </div></div>`;
+        await sendEmail(staffEmails, `🔔 New Appointment Request: ${serviceTitle} — ${date}`, notifyHtml);
+      }
+
+      return res.status(201).json(savedAppt);
     } catch (error) {
       console.error("Error creating appointment:", error);
       res.status(500).json({ error: "Internal server error" });
@@ -830,9 +880,10 @@ async function startServer() {
     const inviteUrl = `${baseUrl}/?invite=${token}`;
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
+    const inviteRole = (req.body.role as string) === 'Client' ? 'Client' : 'Staff';
     const inv: Invitation = {
       id: invId, token, userId, email, firstName, lastName,
-      role: 'Staff', status: 'PENDING', invitedBy: adminName || 'Admin',
+      role: inviteRole, status: 'PENDING', invitedBy: adminName || 'Admin',
       inviteUrl, createdAt: new Date(), expiresAt
     };
     invitations.unshift(inv);
@@ -842,52 +893,46 @@ async function startServer() {
       try {
         await supabase.from('users').upsert([{
           id: userId, first_name: firstName, last_name: lastName, email,
-          app_role: 'Staff', status: 'PENDING',
-          permissions: ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'], lawyer_id: id
+          app_role: inviteRole, status: 'PENDING',
+          permissions: inviteRole === 'Staff' ? ['VIEW_DOCUMENTS', 'MANAGE_APPOINTMENTS'] : [],
+          lawyer_id: inviteRole === 'Staff' ? id : null
         }]);
         await supabase.from('invitations').insert([{
           id: invId, token, user_id: userId, email, first_name: firstName, last_name: lastName,
-          role: 'Staff', status: 'PENDING', invited_by: adminName || 'Admin',
+          role: inviteRole, status: 'PENDING', invited_by: adminName || 'Admin',
           invite_url: inviteUrl, expires_at: expiresAt.toISOString()
         }]);
       } catch (e) { console.warn('Supabase persist invitation failed (tables may not exist):', (e as any)?.message); }
     }
 
-    let emailSent = false;
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey && !resendKey.startsWith('re_123456789') && resendKey !== 'your_resend_api_key') {
-      try {
-        const resend = new Resend(resendKey);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
-          to: email,
-          subject: `You've been invited to join OROELU GODWIN AGIDI & CO Staff Portal`,
-          html: `
-            <div style="font-family:Calibri,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-              <div style="background:#0a2540;padding:32px;text-align:center;">
-                <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">Staff Invitation</div>
-                <div style="color:#fff;font-size:20px;font-weight:bold;">OROELU GODWIN AGIDI & CO</div>
-              </div>
-              <div style="padding:40px 32px;">
-                <h2 style="color:#0a2540;font-size:22px;margin-bottom:12px;">Welcome, ${firstName}!</h2>
-                <p style="color:#374151;line-height:1.6;">You have been added as a staff member at <strong>OROELU GODWIN AGIDI & CO</strong>. Click the button below to set your password and activate your account.</p>
-                <div style="text-align:center;margin:32px 0;">
-                  <a href="${inviteUrl}" style="display:inline-block;background:#0a2540;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">Set Password & Activate Account</a>
-                </div>
-                <p style="color:#6b7280;font-size:12px;line-height:1.6;">If you did not expect this email, you can safely ignore it. This link will expire in 7 days and can only be used once.</p>
-              </div>
-              <div style="background:#f9fafb;padding:20px 32px;text-align:center;color:#9ca3af;font-size:11px;">
-                OROELU GODWIN AGIDI & CO · Lagos, Nigeria
-              </div>
-            </div>
-          `
-        });
-        emailSent = true;
-      } catch (e) { console.warn('Failed to send staff invitation email:', e); }
-    }
+    const isClient = inviteRole === 'Client';
+    const emailSubject = isClient
+      ? `Welcome to OROELU GODWIN AGIDI & CO — Set Up Your Client Account`
+      : `You've been invited to join OROELU GODWIN AGIDI & CO Staff Portal`;
+    const emailHtml = `
+      <div style="font-family:Calibri,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+        <div style="background:#0a2540;padding:32px;text-align:center;">
+          <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px;">${isClient ? 'Client Portal Invitation' : 'Staff Invitation'}</div>
+          <div style="color:#fff;font-size:20px;font-weight:bold;">OROELU GODWIN AGIDI & CO</div>
+        </div>
+        <div style="padding:40px 32px;">
+          <h2 style="color:#0a2540;font-size:22px;margin-bottom:12px;">Welcome, ${firstName}!</h2>
+          <p style="color:#374151;line-height:1.6;">${isClient
+            ? `You have been invited as a <strong>Client</strong> at <strong>OROELU GODWIN AGIDI & CO</strong>. Click the button below to set your password and access your secure client portal.`
+            : `You have been added as a <strong>Staff Member</strong> at <strong>OROELU GODWIN AGIDI & CO</strong>. Click the button below to set your password and activate your account.`
+          }</p>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${inviteUrl}" style="display:inline-block;background:#0a2540;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">${isClient ? 'Set Password & Access Client Portal' : 'Set Password & Activate Account'}</a>
+          </div>
+          <p style="color:#6b7280;font-size:12px;line-height:1.6;">This link will expire in 7 days and can only be used once. If you did not expect this email, you can safely ignore it.</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 32px;text-align:center;color:#9ca3af;font-size:11px;">OROELU GODWIN AGIDI & CO · Lagos, Nigeria</div>
+      </div>`;
+    const emailSent = await sendEmail(email, emailSubject, emailHtml);
 
-    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: 'STAFF_ADDED', target: id, details: `Added ${name} to legal team (invite ${emailSent ? 'emailed' : 'link generated'})` });
-    res.json({ success: true, lawyer: newLawyer, user: newUser, inviteUrl, emailSent, invitationId: invId });
+    const actionLabel = isClient ? 'CLIENT_INVITED' : 'STAFF_ADDED';
+    recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'ADMIN', action: actionLabel, target: isClient ? userId : id, details: `${isClient ? 'Invited client' : 'Added staff'} ${name} (invite ${emailSent ? 'emailed' : 'link generated'})` });
+    res.json({ success: true, lawyer: isClient ? null : newLawyer, user: newUser, inviteUrl, emailSent, invitationId: invId });
   });
 
   app.get("/api/invite/:token", async (req, res) => {
