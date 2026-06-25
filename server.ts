@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
@@ -10,7 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 let genAI: any = null;
 try {
   if (process.env.GEMINI_API_KEY) {
-    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   } else {
     console.warn('GEMINI_API_KEY is not set. Gemini features will be disabled.');
   }
@@ -972,15 +972,16 @@ async function startServer() {
         return res.json({ text: reply, fallback: true });
       }
 
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: `You are the Admin AI Agent for OROELU GODWIN AGIDI & CO. You have full read access to the firm's live activity stream and case data. Be concise, action-oriented, and reference IDs (e.g. CASE-1001) when relevant.
+      const systemPrompt = `You are the Admin AI Agent for OROELU GODWIN AGIDI & CO. You have full read access to the firm's live activity stream and case data. Be concise, action-oriented, and reference IDs (e.g. CASE-1001) when relevant.
 
 Current firm snapshot:
 ${summary}
 
 Recent activity stream (newest first):
-${recent}`
+${recent}`;
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: systemPrompt
       });
 
       const result = await model.generateContent({
@@ -989,7 +990,7 @@ ${recent}`
           { role: 'user', parts: [{ text: message }] }
         ]
       });
-      res.json({ text: (await result.response).text() });
+      res.json({ text: result.response.text() });
     } catch (error) {
       console.error("Admin AI chat error:", error);
       res.status(500).json({ error: "AI processing failed" });
@@ -1005,7 +1006,7 @@ ${recent}`
       }
 
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
+
       const prompt = `
         As an AI Legal Strategist for OROELU GODWIN AGIDI & CO, analyze this client's profile and provide 3 actionable insights or recommendations.
         
@@ -1024,8 +1025,7 @@ ${recent}`
       `;
 
       const result = await model.generateContent(prompt);
-      const response = await result.response;
-      let text = response.text();
+      let text = result.response.text();
       
       // Basic cleanup if JSON is wrapped in markdown
       if (text.includes("```json")) {
@@ -1076,7 +1076,6 @@ ${recent}`
         4. Address: SUITE C20/C21, CHERUB MALL, Lekki, Lagos. Phone: +234 803 320 1909.`
       });
 
-      // Fix for possible chat vs sendMessage issue in some SDK versions
       const result = await model.generateContent({
         contents: [
           ...(history || []).map((h: any) => ({
@@ -1086,8 +1085,7 @@ ${recent}`
           { role: 'user', parts: [{ text: message }] }
         ]
       });
-      const response = await result.response;
-      res.json({ text: response.text() });
+      res.json({ text: result.response.text() });
     } catch (error) {
       console.error("AI Chat Endpoint Error:", error);
       res.status(500).json({ error: "AI processing failed" });
