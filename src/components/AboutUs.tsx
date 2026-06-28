@@ -149,7 +149,8 @@ export default function AboutUs() {
               <div className="h-px w-12 bg-gold"></div>
               <span className="text-gold font-bold uppercase tracking-widest text-sm">Founder's Profile</span>
             </div>
-            <h2 className="font-serif text-4xl font-bold mb-8 leading-tight">Dr. Oroelu Godwin Agidi</h2>
+            <h2 className="font-serif text-4xl font-bold mb-2 leading-tight">Dr. Oroelu Godwin Agidi</h2>
+            <p className="text-gold/80 text-sm font-medium tracking-wide mb-8">BL MCBA MCArb FCILRM CFIAR</p>
             
             <div className="space-y-6 text-gray-300 leading-relaxed font-sans">
               <p className="text-white text-lg font-medium italic border-l-4 border-gold pl-6">
