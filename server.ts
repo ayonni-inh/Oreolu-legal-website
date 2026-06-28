@@ -697,12 +697,40 @@ async function startServer() {
       addLog('DOCUMENT_UPLOADED', uploaderName || 'User', `${file.originalname} uploaded by ${role || 'Client'}`);
       recordActivity({ actorName: uploaderName || 'User', actorRole: role || 'Client', category: 'DOCUMENT', action: 'FILE_UPLOADED', target: docId, details: `${file.originalname} added to master repository` });
 
+      let savedDoc: any = newDoc;
       if (supabase) {
         const { data, error } = await supabase.from('documents').insert([newDoc]).select();
-        if (!error && data) return res.json(data[0]);
+        if (!error && data) savedDoc = data[0];
+      } else {
+        fallbackDocuments.unshift(newDoc);
       }
-      fallbackDocuments.unshift(newDoc);
-      res.json(newDoc);
+
+      // Notify admin/staff when a client uploads a document
+      if ((role || 'Client') === 'Client') {
+        const staffEmails = getStaffEmails();
+        if (staffEmails.length > 0) {
+          const notifyHtml = `
+<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+  <div style="background:#0B1B3A;padding:28px 32px;">
+    <h1 style="color:#C5A059;margin:0;font-size:20px;font-weight:700;">📎 New Document Uploaded</h1>
+    <p style="color:#9ca3af;margin:6px 0 0;font-size:13px;">Agidi & Co Law Firm Portal</p>
+  </div>
+  <div style="padding:32px;">
+    <p style="color:#374151;font-size:15px;margin:0 0 20px;">A client has uploaded a new document to the master repository and it is awaiting your review.</p>
+    <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;margin-bottom:24px;">
+      <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;font-weight:600;width:140px;">Document</td><td style="padding:12px 16px;color:#111827;font-size:14px;font-weight:700;">${file.originalname}</td></tr>
+      <tr style="background:#f3f4f6;"><td style="padding:12px 16px;color:#6b7280;font-size:13px;font-weight:600;">Uploaded by</td><td style="padding:12px 16px;color:#111827;font-size:14px;">${uploaderName || 'Client'}</td></tr>
+      <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;font-weight:600;">File size</td><td style="padding:12px 16px;color:#111827;font-size:14px;">${newDoc.size}</td></tr>
+      <tr style="background:#f3f4f6;"><td style="padding:12px 16px;color:#6b7280;font-size:13px;font-weight:600;">Status</td><td style="padding:12px 16px;"><span style="background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:700;">Pending Review</span></td></tr>
+    </table>
+    <p style="color:#6b7280;font-size:13px;">Log in to the portal to review, approve, or reject this document.</p>
+  </div>
+</div>`;
+          sendEmail(staffEmails, `📎 New Document Upload — ${file.originalname} (Pending Review)`, notifyHtml).catch(() => {});
+        }
+      }
+
+      res.json(savedDoc);
     } catch (error) {
       console.error('File upload error:', error);
       res.status(500).json({ error: "File upload failed" });
@@ -1630,6 +1658,58 @@ ${recent}`;
     } catch (error) {
       console.error("AI Chat Endpoint Error:", error);
       res.status(500).json({ error: "AI processing failed" });
+    }
+  });
+
+  // Legal Research — AI-powered search with Google Search grounding
+  app.post("/api/legal-research/search", async (req, res) => {
+    try {
+      const { query, category } = req.body;
+      if (!query || !process.env.GEMINI_API_KEY) {
+        return res.status(400).json({ error: "Query required or AI unavailable" });
+      }
+
+      const catFilter = category && category !== 'All' ? ` Focus on: ${category}.` : '';
+      const prompt = `You are a Nigerian legal research assistant. The user is searching for: "${query}".${catFilter}
+
+Search Nigerian law and return 6 real, relevant legal resources from authoritative Nigerian and international sources. For each result, provide:
+- Accurate case names, statute titles, or regulation names as they actually exist
+- Real citations where possible (e.g. [2023] LPELR-12345(SC), CAP C20 LFN 2004, etc.)
+- Accurate summaries based on actual Nigerian law
+- The correct category: "Case Law", "Statutes & Regulations", or "Legal Commentary"
+- A real source name and URL (use nigerialii.org, lawpavilion.com, lawnigeria.com, commonlii.org, or laws.gov.ng)
+
+Respond ONLY with a JSON array of 6 objects with these exact keys:
+[{
+  "id": "unique-string",
+  "title": "Full official title of case/statute/article",
+  "citation": "Official citation or statute reference",
+  "category": "Case Law | Statutes & Regulations | Legal Commentary",
+  "date": "YYYY-MM-DD or year",
+  "summary": "2-3 sentence accurate legal summary",
+  "court": "Court name (for cases) or Regulatory body (for statutes)",
+  "source": "Source database name",
+  "url": "URL to source"
+}]`;
+
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        tools: [{ googleSearch: {} } as any]
+      });
+
+      const result = await model.generateContent(prompt);
+      let text = result.response.text();
+      if (text.includes('```json')) text = text.split('```json')[1].split('```')[0].trim();
+      else if (text.includes('```')) text = text.split('```')[1].split('```')[0].trim();
+
+      // Extract JSON array
+      const match = text.match(/\[[\s\S]*\]/);
+      if (!match) return res.status(500).json({ error: 'Could not parse results' });
+      const results = JSON.parse(match[0]);
+      res.json({ results, query });
+    } catch (error) {
+      console.error("Legal research error:", error);
+      res.status(500).json({ error: "Research search failed" });
     }
   });
 
