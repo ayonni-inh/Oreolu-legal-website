@@ -407,7 +407,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
-            { label: 'Active Clients', value: stats.activeClients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Active Cases', value: stats.activeClients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Awaiting Approval', value: stats.pendingVerifications + stats.pendingDocs, icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', urgent: true },
             { label: 'Oversight Logs', value: systemLogs.length, icon: History, color: 'text-rose-600', bg: 'bg-rose-50' },
             { label: 'Total Docs', value: documents.length, icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -445,6 +445,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
           ].filter(t => {
             if (t.adminOnly && user.appRole !== 'Admin') return false;
             if (t.id === 'users' && user.appRole !== 'Admin') return false;
+            if (t.id === 'clients' && !['Admin', 'Staff'].includes(user.appRole)) return false;
             if (t.perm && !hasPermission(t.perm)) return false;
             return true;
           }).map((tab) => (
