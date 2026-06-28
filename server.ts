@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
+import multer from "multer";
 import { Resend } from "resend";
 import path from "path";
 import crypto from "crypto";
@@ -359,6 +360,9 @@ const ONBOARDING_FORMS = [
   { id: 'family', label: 'Family Law Intake', fields: ['Parties', 'Marriage Date', 'Children', 'Issue', 'Desired Outcome'] }
 ];
 
+// Multer — memory storage for Supabase Storage uploads
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
 export const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
@@ -645,8 +649,89 @@ async function startServer() {
         return res.json(fallbackDocuments[index]);
       }
       res.status(404).json({ error: "Document not found" });
+
     } catch (error) {
       res.status(500).json({ error: "Error updating document" });
+    }
+  });
+
+  // Upload actual file to Supabase Storage + record metadata
+  app.post("/api/documents/upload", upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file provided" });
+      const { userId, role, uploaderName } = req.body;
+      const file = req.file;
+      const docId = `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      const storagePath = `documents/${docId}/${file.originalname}`;
+      const status = (role === 'Admin' || role === 'Staff') ? 'APPROVED' : 'PENDING_ADMIN_APPROVAL';
+      let fileUrl: string | null = null;
+
+      if (supabase) {
+        const { error: storageErr } = await supabase.storage
+          .from('firm-documents')
+          .upload(storagePath, file.buffer, { contentType: file.mimetype, upsert: false });
+        if (!storageErr) {
+          const { data: urlData } = supabase.storage.from('firm-documents').getPublicUrl(storagePath);
+          fileUrl = urlData?.publicUrl || null;
+        } else {
+          console.warn('Supabase Storage upload failed:', storageErr.message);
+        }
+      }
+
+      const newDoc: any = {
+        id: docId,
+        name: file.originalname,
+        user_id: userId || 'unknown',
+        size: file.size > 1024 * 1024
+          ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
+          : (file.size / 1024).toFixed(0) + ' KB',
+        type: file.originalname.split('.').pop()?.toUpperCase() || 'FILE',
+        status,
+        storage_path: storagePath,
+        file_url: fileUrl,
+        uploader_role: (role || 'CLIENT').toUpperCase(),
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        created_at: new Date().toISOString()
+      };
+
+      addLog('DOCUMENT_UPLOADED', uploaderName || 'User', `${file.originalname} uploaded by ${role || 'Client'}`);
+      recordActivity({ actorName: uploaderName || 'User', actorRole: role || 'Client', category: 'DOCUMENT', action: 'FILE_UPLOADED', target: docId, details: `${file.originalname} added to master repository` });
+
+      if (supabase) {
+        const { data, error } = await supabase.from('documents').insert([newDoc]).select();
+        if (!error && data) return res.json(data[0]);
+      }
+      fallbackDocuments.unshift(newDoc);
+      res.json(newDoc);
+    } catch (error) {
+      console.error('File upload error:', error);
+      res.status(500).json({ error: "File upload failed" });
+    }
+  });
+
+  // Get a signed download URL for a document
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const { id } = req.params;
+      let doc: any = null;
+
+      if (supabase) {
+        const { data } = await supabase.from('documents').select('*').eq('id', id).maybeSingle();
+        doc = data;
+      }
+      if (!doc) doc = fallbackDocuments.find(d => d.id === id);
+      if (!doc) return res.status(404).json({ error: "Document not found" });
+
+      if (doc.file_url) return res.json({ url: doc.file_url, name: doc.name });
+
+      if (supabase && doc.storage_path) {
+        const { data, error } = await supabase.storage.from('firm-documents').createSignedUrl(doc.storage_path, 3600);
+        if (!error && data?.signedUrl) return res.json({ url: data.signedUrl, name: doc.name });
+      }
+
+      res.status(404).json({ error: "File not available for download" });
+    } catch (error) {
+      res.status(500).json({ error: "Download failed" });
     }
   });
 
@@ -1398,7 +1483,7 @@ ${summary}
 Recent activity stream (newest first):
 ${recent}`;
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: systemPrompt
       });
 
@@ -1423,7 +1508,7 @@ ${recent}`;
         return res.status(503).json({ error: "AI Service unavailable" });
       }
 
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       const prompt = `
         As an AI Legal Strategist for OROELU GODWIN AGIDI & CO, analyze this client's profile and provide 3 actionable insights or recommendations.
@@ -1466,7 +1551,7 @@ ${recent}`;
       if (!genAI) {
         return res.json({ posts: fallbackBlogPosts });
       }
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const prompt = `Generate 6 recent and highly relevant legal news articles or blog posts. 
       Focus on worldwide law news, but specifically target topics that Africans and Nigerians would be interested in (e.g., international trade laws affecting Africa, tech regulations in Nigeria, human rights, immigration, corporate law developments in Africa, etc.).
       
@@ -1507,7 +1592,7 @@ ${recent}`;
       }
 
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         systemInstruction: `You are a professional AI Legal Assistant for the Nigerian law firm "OROELU GODWIN AGIDI & CO". 
         Your goal is to provide accurate information and guidance on Nigerian law, including corporate law, litigation, property law, family law, and constitutional matters.
         

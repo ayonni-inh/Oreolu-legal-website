@@ -855,9 +855,12 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
                                     </button>
                                   )}
                                   <button 
-                                    onClick={() => {
-                                      alert(`Initiating secure download for: ${doc.name}`);
-                                      // In a real app: window.open(`/api/documents/${doc.id}/download`)
+                                    onClick={async () => {
+                                      if (doc.file_url) { window.open(doc.file_url, '_blank'); return; }
+                                      try {
+                                        const r = await fetch(`/api/documents/${doc.id}/download`);
+                                        if (r.ok) { const { url } = await r.json(); window.open(url, '_blank'); }
+                                      } catch {}
                                     }}
                                     className="p-2 text-gray-400 hover:text-navy transition-colors bg-white border border-gray-200 rounded-lg shadow-sm"
                                     title="Download File"

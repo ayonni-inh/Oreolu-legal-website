@@ -155,8 +155,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
   }, [localUser.clientId, refreshTrigger, isUploading]);
   const [caseProgress, setCaseProgress] = useState<any>(null);
 
-  const handleDownload = (doc: any) => {
-    // For newly uploaded files with real data
+  const handleDownload = async (doc: any) => {
     if (doc.fileData) {
       const url = URL.createObjectURL(doc.fileData);
       const a = document.createElement('a');
@@ -166,18 +165,20 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } else {
-      // For mock files, simulate a download
-      const content = `Mock content for ${doc.name}`;
-      const blob = new Blob([content], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = doc.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      return;
+    }
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/documents/${doc.id}/download`);
+      if (res.ok) {
+        const { url } = await res.json();
+        window.open(url, '_blank');
+      }
+    } catch (e) {
+      console.error('Download failed', e);
     }
   };
 
@@ -465,59 +466,51 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
 
   const processFiles = async (files: File[]) => {
     if (isUploading) return;
-    
+
     setIsUploading(true);
     setUploadProgress(0);
     setUploadError(null);
-    
-    // In a real app, this would use FormData to upload to bucket.
-    // Here we sync metadata with server first.
+
     const file = files[0];
-    
+
     try {
-      // Sync metadata to server
-      const res = await fetch('/api/documents', {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', localUser.clientId || 'client-1');
+      formData.append('role', localUser.appRole || 'Client');
+      formData.append('uploaderName', `${localUser.firstName} ${localUser.lastName}`);
+
+      // Simulate progress while uploading
+      let currentProgress = 0;
+      const progressInterval = setInterval(() => {
+        currentProgress = Math.min(currentProgress + Math.floor(Math.random() * 12) + 4, 85);
+        setUploadProgress(currentProgress);
+      }, 150);
+
+      const res = await fetch('/api/documents/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: file.name,
-          userId: localUser.clientId || 'client-1',
-          size: file.size > 1024 * 1024 
-            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' 
-            : (file.size / 1024).toFixed(0) + ' KB',
-          type: file.name.split('.').pop()?.toUpperCase() || 'FILE',
-          role: 'Client',
-          uploaderName: `${localUser.firstName} ${localUser.lastName}`
-        })
+        body: formData,
       });
 
-      if (!res.ok) throw new Error("Metadata sync failed");
+      clearInterval(progressInterval);
+
+      if (!res.ok) throw new Error("Upload failed");
       const syncedDoc = await res.json();
 
-      let currentProgress = 0;
-      const interval = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 15) + 5;
-        
-        if (currentProgress >= 100) {
-          clearInterval(interval);
-          setUploadProgress(100);
-          
-          setTimeout(() => {
-            setUserDocuments(prev => [syncedDoc, ...prev]);
-            setIsUploading(false);
-            setUploadProgress(null);
-            setAptActionMsg("File synced and encrypted. Awaiting Super Admin verification.");
-            if (fileInputRef.current) fileInputRef.current.value = '';
-          }, 800);
-        } else {
-          setUploadProgress(currentProgress);
-        }
-      }, 100);
+      setUploadProgress(100);
+      setTimeout(() => {
+        setUserDocuments(prev => [syncedDoc, ...prev]);
+        setIsUploading(false);
+        setUploadProgress(null);
+        setAptActionMsg("File uploaded to secure vault. Awaiting Super Admin verification.");
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }, 800);
 
     } catch (e) {
       console.error(e);
-      setUploadError("Could not synchronize with legal server.");
+      setUploadError("Could not upload to legal server. Please try again.");
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
