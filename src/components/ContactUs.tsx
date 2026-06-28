@@ -69,6 +69,14 @@ export default function ContactUs() {
                     Lekki Penninsula II,<br />
                     Lekki 106104, Lagos
                   </p>
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=SUITE+C20+C21+CHERUB+MALL+KM+18+Lekki+Epe+Expressway+Lekki+Lagos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
+                  >
+                    <MapPin className="w-3.5 h-3.5" /> Get Directions →
+                  </a>
                 </div>
               </div>
 
@@ -91,8 +99,8 @@ export default function ContactUs() {
                 <div>
                   <h3 className="font-bold text-navy text-lg mb-1">Email</h3>
                   <p className="text-gray-600">
-                    General Inquiries: contact@ogagidi.com<br />
-                    Client Support: support@ogagidi.com
+                    General Inquiries: ogacosolicitors@gmail.com<br />
+                    Client Support: contact@ogacosolicitors.com
                   </p>
                 </div>
               </div>
