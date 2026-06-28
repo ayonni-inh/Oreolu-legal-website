@@ -82,6 +82,29 @@ export default function ContactUs() {
 
               <div className="flex items-start gap-4">
                 <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-navy text-lg mb-1">Ojo Office</h3>
+                  <p className="text-gray-600 leading-relaxed">
+                    Suite 5/6, 2nd Floor, Plot 4,<br />
+                    Alaba Int'l Market Road,<br />
+                    Opposite Total Station,<br />
+                    Ojo, Lagos State
+                  </p>
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Alaba+International+Market+Road+Ojo+Lagos"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
+                  >
+                    <MapPin className="w-3.5 h-3.5" /> Get Directions →
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
                   <Phone className="w-6 h-6" />
                 </div>
                 <div>

@@ -213,13 +213,20 @@ export default function App() {
               <h4 className="font-bold text-xs uppercase tracking-widest mb-4 text-gold">Contact</h4>
               <ul className="space-y-2.5 text-sm text-gray-400">
                 <li><a href="tel:+2348033201909" className="hover:text-white transition-colors">+234 803 320 1909</a></li>
-                <li><a href="mailto:contact@ogagidi.com" className="hover:text-white transition-colors">contact@ogagidi.com</a></li>
+                <li><a href="mailto:ogacosolicitors@gmail.com" className="hover:text-white transition-colors">ogacosolicitors@gmail.com</a></li>
                 <li className="leading-relaxed text-xs">
                   HERITAGE &amp; GRACE CHAMBERS,<br />
                   SUITE C20/C21, CHERUB MALL,<br />
                   New Road Bus Stop,<br />
                   KM 18 Lekki - Epe Expy,<br />
                   Lekki 106104, Lagos
+                </li>
+                <li className="leading-relaxed text-xs pt-1">
+                  <span className="text-gold font-semibold">OJO OFFICE:</span><br />
+                  Suite 5/6, 2nd Floor, Plot 4,<br />
+                  Alaba Int'l Market Road,<br />
+                  Opposite Total Station,<br />
+                  Ojo, Lagos State
                 </li>
               </ul>
             </div>
