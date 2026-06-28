@@ -489,25 +489,29 @@ async function startServer() {
 
   app.post("/api/appointments", async (req, res) => {
     try {
-      const { userId, serviceTitle, date, time, price, trackingNumber, status, role, requesterName } = req.body;
+      const { userId, serviceTitle, date, time, price, trackingNumber, status, role, requesterName,
+              consultationType, practiceArea, description, preferredLawyer, attachedDocCount } = req.body;
       
       if (!userId || !serviceTitle || !date || !time) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Admin logic: Admins can auto-approve their own or others' creations if they choose
-      // Clients and Staff/Legal always default to pending admin approval for certain types if not explicitly set
       const defaultStatus = (role === 'Admin') ? (status || 'APPROVED') : 'PENDING_ADMIN_APPROVAL';
 
-      const newAppointment = {
+      const newAppointment: any = {
         user_id: userId,
         service_title: serviceTitle,
         appointment_date: date,
         appointment_time: time,
         status: defaultStatus,
-        price: price || 'Free',
+        price: price || 'TBD',
         tracking_number: trackingNumber || `TRK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        ...(consultationType && { consultation_type: consultationType }),
+        ...(practiceArea && { practice_area: practiceArea }),
+        ...(description && { description }),
+        ...(preferredLawyer && { preferred_lawyer: preferredLawyer }),
+        ...(attachedDocCount && { attached_doc_count: attachedDocCount }),
       };
 
       if (defaultStatus === 'PENDING_ADMIN_APPROVAL') {
