@@ -9,7 +9,6 @@ import LegalResearch from './components/LegalResearch';
 import AboutUs from './components/AboutUs';
 import ContactUs from './components/ContactUs';
 import LegalDashboard from './components/LegalDashboard';
-import ClientDashboard from './components/ClientDashboard';
 import AdminAIPanel from './components/AdminAIPanel';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -62,13 +61,8 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return currentUser?.appRole === 'Client' ? (
-          <ClientDashboard
-            user={currentUser}
-            onUpdateUser={(data) => setCurrentUser(data)}
-            onBookService={(service) => setSelectedService(service)}
-            refreshTrigger={dashboardRefreshTrigger}
-          />
+        return currentUser?.appRole === 'Admin' ? (
+          <LegalDashboard user={currentUser} />
         ) : <LegalDashboard user={currentUser} />;
       case 'legal-research':
         return <LegalResearch />;
