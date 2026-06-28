@@ -151,6 +151,14 @@ function getStaffEmails(): string[] {
   ].filter(Boolean))];
 }
 
+// Helper: generate unique OGA-YYYY-NNNNN client ID
+let _clientIdSeq = 100 + Math.floor(Math.random() * 200);
+function generateClientId(): string {
+  _clientIdSeq++;
+  const year = new Date().getFullYear();
+  return `OGA-${year}-${String(_clientIdSeq).padStart(5, '0')}`;
+}
+
 let systemLogs: any[] = [
   { id: 'log-1', timestamp: new Date().toISOString(), action: 'SYSTEM_BOOT', admin: 'SYSTEM', details: 'Law Firm Portal initialized with Super Admin protocol.' }
 ];
@@ -405,7 +413,7 @@ async function startServer() {
   app.patch("/api/appointments/:id/status", async (req, res) => {
     try {
       const { id } = req.params;
-      const { status, role, adminName } = req.body;
+      const { status, role, adminName, notifyClient } = req.body;
       const upperRole = role?.toUpperCase();
 
       if (upperRole !== 'ADMIN' && upperRole !== 'STAFF') {
@@ -414,25 +422,68 @@ async function startServer() {
 
       addLog('APPOINTMENT_STATUS_UPDATE', adminName || 'Admin', `Changed appointment ${id} status to ${status}`);
 
+      let updatedAppt: any = null;
       if (supabase) {
-        const { data, error } = await supabase
-          .from('appointments')
-          .update({ status })
-          .eq('id', id)
-          .select();
+        const { data, error } = await supabase.from('appointments').update({ status }).eq('id', id).select();
         if (error) throw error;
-        return res.json(data[0]);
+        updatedAppt = data[0];
       } else {
         const index = fallbackAppointments.findIndex(a => a.id === id);
         if (index !== -1) {
           fallbackAppointments[index].status = status;
-          return res.json(fallbackAppointments[index]);
+          updatedAppt = fallbackAppointments[index];
         }
-        return res.status(404).json({ error: "Appointment not found" });
+        if (!updatedAppt) return res.status(404).json({ error: "Appointment not found" });
       }
+
+      // Send confirmation email to client when approved
+      if (status === 'APPROVED' && notifyClient && updatedAppt) {
+        const clientInfo = await getUserEmail(updatedAppt.user_id);
+        if (clientInfo?.email) {
+          const confirmHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+            <div style="background:#0a2540;padding:24px 32px;"><div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">Appointment Confirmed</div>
+            <div style="color:#fff;font-size:18px;font-weight:bold;margin-top:6px;">OROELU GODWIN AGIDI & CO</div></div>
+            <div style="padding:32px;">
+              <h2 style="color:#0a2540;margin-bottom:8px;">Your consultation is confirmed, ${clientInfo.firstName}!</h2>
+              <p style="color:#374151;margin-bottom:24px;">Our team has reviewed and approved your appointment. Here are your details:</p>
+              <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;">
+                <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;width:130px;border-bottom:1px solid #e5e7eb;">Service</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;border-bottom:1px solid #e5e7eb;">${updatedAppt.service_title}</td></tr>
+                <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Date</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;border-bottom:1px solid #e5e7eb;">${updatedAppt.appointment_date}</td></tr>
+                <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Time</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;border-bottom:1px solid #e5e7eb;">${updatedAppt.appointment_time}</td></tr>
+                <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;">Reference</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;">${updatedAppt.tracking_number}</td></tr>
+              </table>
+              <p style="color:#374151;margin-top:24px;">Please arrive 10 minutes early. If you need to reschedule, contact us at least 24 hours in advance.</p>
+              <div style="margin-top:24px;padding:16px;background:#0a2540;border-radius:8px;text-align:center;">
+                <p style="color:#c9a14a;font-size:12px;margin:0;">Questions? Reply to this email or call our firm directly.</p>
+              </div>
+            </div></div>`;
+          await sendEmail(clientInfo.email, `✅ Appointment Confirmed — ${updatedAppt.service_title} on ${updatedAppt.appointment_date}`, confirmHtml);
+        }
+      }
+
+      return res.json(updatedAppt);
     } catch (error) {
       console.error("Error updating appointment status:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      if (supabase) {
+        const { error } = await supabase.from('appointments').delete().eq('id', id);
+        if (error) throw error;
+        return res.json({ success: true });
+      }
+      const index = fallbackAppointments.findIndex(a => a.id === id);
+      if (index !== -1) {
+        fallbackAppointments.splice(index, 1);
+        return res.json({ success: true });
+      }
+      return res.status(404).json({ error: "Appointment not found" });
+    } catch (e) {
+      res.status(500).json({ error: "Failed to cancel appointment" });
     }
   });
 
@@ -1073,7 +1124,7 @@ async function startServer() {
   // Auth — Register
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { firstName, lastName, email, password, companyName, industry, jobTitle, appRole } = req.body;
+      const { firstName, lastName, email, password, phone, companyName, industry, jobTitle, position, appRole } = req.body;
       if (!firstName || !lastName || !email || !password) return res.status(400).json({ error: 'Missing required fields' });
 
       // Check duplicate email
@@ -1086,23 +1137,55 @@ async function startServer() {
       }
 
       const id = `client-${Date.now()}`;
-      const clientId = '#' + Math.floor(10000 + Math.random() * 90000);
+      const clientId = generateClientId();
       const passwordHash = hashPassword(password);
-      const role = appRole || 'Client';
-      const status = role === 'Admin' ? 'PENDING' : (role === 'Staff' ? 'PENDING' : 'ACTIVE');
+      const role = 'Client'; // Self-registration is always Client role
+      const status = 'ACTIVE';
+      const resolvedPosition = position || jobTitle || '';
 
-      const newUser: any = { id, firstName, lastName, email, passwordHash, appRole: role, companyName, industry, jobTitle, clientId, status, permissions: [] };
+      const newUser: any = {
+        id, firstName, lastName, email, phone: phone || '', passwordHash,
+        appRole: role, companyName: companyName || '', industry: industry || '',
+        jobTitle: resolvedPosition, clientId, status, permissions: []
+      };
       fallbackUsers.push(newUser);
 
       if (supabase) {
         try {
           await supabase.from('users').insert([{
-            id, first_name: firstName, last_name: lastName, email, password_hash: passwordHash,
-            app_role: role, company_name: companyName, industry, job_title: jobTitle,
+            id, first_name: firstName, last_name: lastName, email, phone: phone || '',
+            password_hash: passwordHash, app_role: role, company_name: companyName || '',
+            industry: industry || '', job_title: resolvedPosition,
             client_id: clientId, status, permissions: []
           }]);
         } catch (e) { console.warn('Supabase register persist failed:', (e as any)?.message); }
       }
+
+      // Send welcome email
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+        : `http://localhost:${process.env.PORT || 5000}`;
+      const welcomeHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+        <div style="background:#0a2540;padding:28px 32px;">
+          <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">Welcome to the Firm</div>
+          <div style="color:#fff;font-size:20px;font-weight:bold;margin-top:8px;">OROELU GODWIN AGIDI & CO</div>
+        </div>
+        <div style="padding:32px;">
+          <h2 style="color:#0a2540;margin-bottom:8px;">Welcome, ${firstName}!</h2>
+          <p style="color:#374151;line-height:1.6;margin-bottom:24px;">Your client account has been successfully created. Here are your login details:</p>
+          <table style="width:100%;border-collapse:collapse;background:#f9fafb;border-radius:8px;overflow:hidden;">
+            <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Client ID</td><td style="padding:12px 16px;font-weight:bold;color:#c9a14a;font-size:16px;border-bottom:1px solid #e5e7eb;font-family:monospace;">${clientId}</td></tr>
+            <tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;border-bottom:1px solid #e5e7eb;">Email</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;border-bottom:1px solid #e5e7eb;">${email}</td></tr>
+            ${companyName ? `<tr><td style="padding:12px 16px;color:#6b7280;font-size:13px;">Company</td><td style="padding:12px 16px;font-weight:bold;color:#0a2540;font-size:13px;">${companyName}</td></tr>` : ''}
+          </table>
+          <div style="text-align:center;margin:32px 0;">
+            <a href="${baseUrl}" style="display:inline-block;background:#0a2540;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;">Access Your Client Dashboard</a>
+          </div>
+          <p style="color:#6b7280;font-size:12px;">Keep your Client ID <strong>${clientId}</strong> safe — you may need it when contacting us.</p>
+        </div>
+        <div style="background:#f9fafb;padding:20px 32px;text-align:center;color:#9ca3af;font-size:11px;">OROELU GODWIN AGIDI & CO · Lagos, Nigeria</div>
+      </div>`;
+      await sendEmail(email, `Welcome to OROELU GODWIN AGIDI & CO — Your Client ID: ${clientId}`, welcomeHtml);
 
       recordActivity({ actorId: id, actorName: `${firstName} ${lastName}`, actorRole: role, category: 'AUTH', action: 'USER_REGISTERED', target: clientId, details: `New ${role} registered: ${email}` });
       const { passwordHash: _, ...safeUser } = newUser;

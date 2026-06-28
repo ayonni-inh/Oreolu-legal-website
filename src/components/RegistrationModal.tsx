@@ -1,6 +1,5 @@
 import { useState, ChangeEvent, FormEvent, useEffect, useRef } from 'react';
 import { X, User, Building, CheckCircle2, ArrowRight, ArrowLeft, ShieldCheck, AlertCircle } from 'lucide-react';
-import { sendEmailNotification, emailTemplates } from '../services/emailService';
 
 interface RegistrationModalProps {
   isOpen: boolean;
@@ -16,11 +15,11 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     companyName: '',
     industry: '',
-    jobTitle: '',
-    appRole: 'Client',
+    position: '',
     clientId: ''
   });
 
@@ -73,11 +72,11 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
+          phone: formData.phone,
           password: formData.password,
           companyName: formData.companyName,
           industry: formData.industry,
-          jobTitle: formData.jobTitle,
-          appRole: formData.appRole
+          position: formData.position,
         })
       });
       const data = await res.json();
@@ -87,10 +86,6 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
       }
       setFormData(prev => ({ ...prev, clientId: data.user?.clientId || prev.clientId }));
       setStep(3);
-      try {
-        const template = emailTemplates.welcome(formData.firstName);
-        sendEmailNotification(formData.email, template.subject, template.html);
-      } catch { /* email is optional */ }
     } catch {
       setError('Unable to connect. Please try again.');
     } finally {
@@ -102,8 +97,8 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
     setStep(1);
     setError(null);
     setFormData({
-      firstName: '', lastName: '', email: '', password: '',
-      companyName: '', industry: '', jobTitle: '', appRole: 'Client', clientId: ''
+      firstName: '', lastName: '', email: '', phone: '', password: '',
+      companyName: '', industry: '', position: '', clientId: ''
     });
     onClose();
   };
@@ -243,6 +238,16 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
                 />
               </div>
 
+              <div className="mb-4">
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input 
+                  id="phone"
+                  required type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all" 
+                  placeholder="+234 801 234 5678"
+                />
+              </div>
+
               <div className="mb-8">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                 <input 
@@ -326,7 +331,7 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
                   <select 
@@ -340,34 +345,28 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
                     <option value="healthcare">Healthcare</option>
                     <option value="real_estate">Real Estate</option>
                     <option value="manufacturing">Manufacturing</option>
+                    <option value="oil_gas">Oil & Gas</option>
+                    <option value="legal">Legal / Professional Services</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">Position / Title</label>
                   <input 
-                    id="jobTitle"
-                    required type="text" name="jobTitle" value={formData.jobTitle} onChange={handleChange}
+                    id="position"
+                    required type="text" name="position" value={formData.position} onChange={handleChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all" 
-                    placeholder="CEO, Founder, etc."
+                    placeholder="CEO, Director, etc."
                   />
                 </div>
               </div>
 
-              <div className="mb-8">
-                <label htmlFor="appRole" className="block text-sm font-medium text-gray-700 mb-1">System Access Role</label>
-                <select 
-                  id="appRole"
-                  required name="appRole" value={formData.appRole} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all bg-white"
-                >
-                  <option value="Client">Client (Standard Access)</option>
-                  <option value="Staff">Staff (Legal Team)</option>
-                  <option value="Admin">Administrator (Full Control)</option>
-                </select>
-                <p className="text-[10px] text-gray-500 mt-1 italic">
-                  * Admin and Staff roles require manual verification by the firm.
-                </p>
+              <div className="mb-8 bg-gold/5 border border-gold/20 rounded-xl p-4 flex items-start gap-3">
+                <ShieldCheck className="w-5 h-5 text-gold shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-navy">Client Portal Access</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Your account will receive a unique Client ID (e.g. OGA-2026-00421) and immediate access to the secure client dashboard.</p>
+                </div>
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t border-gray-100">
@@ -394,28 +393,42 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
           )}
 
           {step === 3 && (
-            <div className="text-center py-8 animate-in zoom-in duration-500" role="status">
+            <div className="text-center py-6 animate-in zoom-in duration-500" role="status">
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-10 h-10 text-green-600" aria-hidden="true" />
               </div>
-              <h3 className="font-serif text-3xl font-bold text-navy mb-4">Welcome to OROELU GODWIN AGIDI & CO</h3>
-              <p className="text-gray-600 font-sans max-w-md mx-auto mb-6">
-                Your client account has been successfully created for <span className="font-semibold text-navy">{formData.companyName}</span>. You can now access your secure dashboard, book consultations, and upload documents.
+              <h3 className="font-serif text-2xl font-bold text-navy mb-2">Welcome, {formData.firstName}!</h3>
+              <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
+                Your client account has been created successfully. A welcome email with your login details has been sent to <span className="font-semibold text-navy">{formData.email}</span>.
               </p>
               
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 max-w-xs mx-auto mb-8">
-                <p className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-1">Your Client ID</p>
-                <p className="text-2xl font-serif font-bold text-navy tracking-tight">{formData.clientId}</p>
-                <p className="text-[10px] text-gray-500 mt-1 italic">Please save this for your records.</p>
+              <div className="bg-navy rounded-2xl p-6 max-w-xs mx-auto mb-6 text-left">
+                <p className="text-gold text-[10px] uppercase tracking-widest font-bold mb-3">Your Client Credentials</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-white/50 text-[10px] uppercase tracking-wider">Client ID</p>
+                    <p className="text-white font-mono text-xl font-bold tracking-wide">{formData.clientId}</p>
+                  </div>
+                  {formData.companyName && (
+                    <div>
+                      <p className="text-white/50 text-[10px] uppercase tracking-wider">Company</p>
+                      <p className="text-white text-sm font-semibold">{formData.companyName}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-white/50 text-[10px] uppercase tracking-wider">Email</p>
+                    <p className="text-white text-sm">{formData.email}</p>
+                  </div>
+                </div>
+                <p className="text-white/40 text-[10px] mt-4 italic">Save your Client ID — you may need it when contacting us.</p>
               </div>
-              <div>
-                <button 
-                  onClick={handleSuccess}
-                  className="bg-navy hover:bg-navy-light text-white px-8 py-3 rounded-lg font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2 outline-none"
-                >
-                  Go to Client Dashboard
-                </button>
-              </div>
+
+              <button 
+                onClick={handleSuccess}
+                className="bg-gold hover:bg-gold-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 outline-none"
+              >
+                Access My Dashboard →
+              </button>
             </div>
           )}
         </div>

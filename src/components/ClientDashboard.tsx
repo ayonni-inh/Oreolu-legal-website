@@ -187,6 +187,25 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
 
   const [appointments, setAppointments] = useState<any[]>([]);
   const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [viewingApt, setViewingApt] = useState<any | null>(null);
+  const [aptActionMsg, setAptActionMsg] = useState<string | null>(null);
+
+  const cancelAppointment = async (id: string) => {
+    setCancellingId(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAppointments(prev => prev.filter(a => a.id !== id));
+        setAptActionMsg('Appointment cancelled successfully.');
+        setTimeout(() => setAptActionMsg(null), 4000);
+      } else {
+        setAptActionMsg('Could not cancel appointment. Please try again.');
+        setTimeout(() => setAptActionMsg(null), 4000);
+      }
+    } catch { setAptActionMsg('Network error. Please retry.'); setTimeout(() => setAptActionMsg(null), 4000); }
+    finally { setCancellingId(null); }
+  };
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -444,7 +463,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
             setUserDocuments(prev => [syncedDoc, ...prev]);
             setIsUploading(false);
             setUploadProgress(null);
-            alert("File synced and encrypted. Awaiting Super Admin verification.");
+            setAptActionMsg("File synced and encrypted. Awaiting Super Admin verification.");
             if (fileInputRef.current) fileInputRef.current.value = '';
           }, 800);
         } else {
@@ -570,7 +589,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-serif text-xl font-bold text-navy">Recommended for You</h3>
-                <button className="text-sm font-semibold text-navy hover:text-gold transition-colors">Explore All</button>
+                <button onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })} className="text-sm font-semibold text-navy hover:text-gold transition-colors">Explore All</button>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
@@ -1022,17 +1041,22 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {(apt.status === 'Upcoming' || apt.status === 'Pending') && (
+                      {(apt.status === 'Upcoming' || apt.status === 'Pending' || apt.status === 'PENDING_ADMIN_APPROVAL') && (
                         <div className="flex items-center gap-1">
-                          <button className="p-2.5 text-gray-400 hover:text-navy hover:bg-white rounded-xl border border-transparent hover:border-gray-200 transition-all shadow-sm flex items-center justify-center" title="Reschedule">
-                            <Edit2 className="w-4.5 h-4.5" />
+                          <button 
+                            onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
+                            className="p-2.5 text-gray-400 hover:text-navy hover:bg-white rounded-xl border border-transparent hover:border-gray-200 transition-all shadow-sm flex items-center justify-center" title="Reschedule">
+                            <Edit2 className="w-4 h-4" />
                           </button>
-                          <button className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl border border-transparent hover:border-red-100 transition-all shadow-sm flex items-center justify-center" title="Cancel Appointment">
-                            <X className="w-4.5 h-4.5" />
+                          <button 
+                            disabled={cancellingId === apt.id}
+                            onClick={() => { if (window.confirm('Cancel this appointment?')) cancelAppointment(apt.id); }}
+                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-xl border border-transparent hover:border-red-100 transition-all shadow-sm flex items-center justify-center disabled:opacity-50" title="Cancel Appointment">
+                            {cancellingId === apt.id ? <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" /> : <X className="w-4 h-4" />}
                           </button>
                         </div>
                       )}
-                      <button className="bg-navy hover:bg-navy-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 flex items-center gap-2">
+                      <button onClick={() => setViewingApt(apt)} className="bg-navy hover:bg-navy-light text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95 flex items-center gap-2">
                         View Details <ChevronRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -1333,11 +1357,73 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+
+      {/* Action toast */}
+      {aptActionMsg && (
+        <div className="fixed top-6 right-6 z-50 bg-emerald-600 text-white px-5 py-4 rounded-xl shadow-lg text-sm font-medium flex items-center gap-3 animate-in slide-in-from-right-4 duration-300 max-w-sm">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          {aptActionMsg}
+        </div>
+      )}
+
+      {/* Appointment Details Modal */}
+      {viewingApt && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setViewingApt(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+            <div className="bg-navy text-white p-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-gold text-[10px] uppercase tracking-widest font-bold mb-1">Appointment Details</p>
+                  <h3 className="font-serif text-xl font-bold">{viewingApt.service_title}</h3>
+                </div>
+                <button onClick={() => setViewingApt(null)} className="text-gray-300 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              {[
+                { label: 'Date', value: viewingApt.appointment_date },
+                { label: 'Time', value: viewingApt.appointment_time },
+                { label: 'Status', value: viewingApt.status === 'PENDING_ADMIN_APPROVAL' ? 'Pending Review' : viewingApt.status },
+                { label: 'Tracking No.', value: viewingApt.tracking_number },
+                { label: 'Price', value: viewingApt.price },
+              ].map(({ label, value }) => value && (
+                <div key={label} className="flex justify-between items-center py-2 border-b border-gray-100">
+                  <span className="text-sm text-gray-500 font-medium">{label}</span>
+                  <span className="text-sm font-bold text-navy">{value}</span>
+                </div>
+              ))}
+              {(viewingApt.status === 'PENDING_ADMIN_APPROVAL' || viewingApt.status === 'Pending') && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+                  <p className="font-semibold mb-1">Under Review</p>
+                  <p className="text-xs">Our team is reviewing your request. You'll receive a confirmation email once approved.</p>
+                </div>
+              )}
+              {viewingApt.status === 'APPROVED' && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-700">
+                  <p className="font-semibold mb-1">✅ Confirmed</p>
+                  <p className="text-xs">This appointment has been approved. Please arrive 10 minutes early.</p>
+                </div>
+              )}
+            </div>
+            <div className="px-6 pb-6">
+              <button onClick={() => setViewingApt(null)} className="w-full bg-navy text-white py-3 rounded-xl font-semibold hover:bg-navy-light transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="bg-navy text-white pb-24 pt-10 px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex justify-between items-start">
           <div>
-            <h1 className="font-serif text-3xl font-bold">Client Dashboard</h1>
-            <p className="text-gray-300 mt-2">Manage your legal affairs securely.</p>
+            <h1 className="font-serif text-3xl font-bold">Welcome, {localUser.firstName} {localUser.lastName}</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-gold font-mono text-sm font-bold">{localUser.clientId}</span>
+              {localUser.companyName && <span className="text-gray-300 text-sm">· {localUser.companyName}</span>}
+            </div>
           </div>
           
           {/* Notification Bell */}

@@ -343,26 +343,14 @@ export default function AdminAIPanel({ user }: Props) {
     if (!inviteForm.firstName || !inviteForm.email) return;
     setInviteSaving(true); setInviteMsg(''); setInviteLink(''); setInviteEmailSent(null);
     try {
-      const endpoint = inviteForm.role === 'Client' ? '/api/auth/register' : '/api/staff';
-      let data: any;
-      if (inviteForm.role === 'Client') {
-        const tmpPassword = crypto.randomUUID ? crypto.randomUUID().slice(0, 12) : Math.random().toString(36).slice(2, 14);
-        const res = await fetch(endpoint, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...inviteForm, password: tmpPassword, adminName })
-        });
-        data = await res.json();
-        setInviteMsg(`Client account created for ${inviteForm.firstName} ${inviteForm.lastName}.`);
-      } else {
-        const res = await fetch(endpoint, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...inviteForm, specialties: [], capacity: 8, adminName })
-        });
-        data = await res.json();
-        setInviteMsg(`${inviteForm.role} invitation sent to ${inviteForm.email}.`);
-        setInviteLink(data.inviteUrl || '');
-        setInviteEmailSent(data.emailSent ?? false);
-      }
+      const res = await fetch('/api/staff', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...inviteForm, specialties: [], capacity: 8, adminName, role: inviteForm.role })
+      });
+      const data = await res.json();
+      setInviteMsg(`${inviteForm.role} invitation sent to ${inviteForm.email}. They will receive an email with a set-password link.`);
+      setInviteLink(data.inviteUrl || '');
+      setInviteEmailSent(data.emailSent ?? false);
       setInviteForm({ firstName: '', lastName: '', email: '', role: 'Staff' });
       refreshAll();
     } catch { setInviteMsg('Failed to send invitation.'); }

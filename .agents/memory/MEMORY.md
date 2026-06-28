@@ -1,2 +1,4 @@
 - [Auth & Supabase persistence](auth-supabase.md) — real login/register via /api/auth/*; password hashing with Node crypto.scryptSync; graceful in-memory fallback when Supabase tables don't exist
 - [Invitation workflow](invitation-workflow.md) — staff/client invitations tracked in Invitation[] in-memory + Supabase; resend endpoint refreshes token; schema in supabase-schema.sql
+- [Client ID & email flow](client-id-email-flow.md) — OGA-YYYY-NNNNN format IDs (generateClientId helper); self-registration always Client role; welcome email sent server-side; sendEmail() helper gracefully no-ops if RESEND_API_KEY absent
+- [Appointment notifications](appointment-notifications.md) — POST /api/appointments notifies all admin+staff emails; PATCH /api/appointments/:id/status sends client confirmation email when approved (notifyClient:true); DELETE /api/appointments/:id for cancellation

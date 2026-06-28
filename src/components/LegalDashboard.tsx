@@ -369,6 +369,16 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20">
+      {/* Toast notification */}
+      {approvalToast && (
+        <div className={`fixed top-6 right-6 z-50 px-5 py-4 rounded-xl shadow-lg text-white text-sm font-medium flex items-center gap-3 animate-in slide-in-from-right-4 duration-300 max-w-sm ${approvalToast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}>
+          {approvalToast.type === 'success'
+            ? <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            : <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          }
+          {approvalToast.msg}
+        </div>
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Dashboard Header */}
