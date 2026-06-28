@@ -384,8 +384,23 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         {/* Dashboard Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-serif font-bold text-navy capitalize">{user.appRole} Control Panel</h1>
-            <p className="text-gray-500 mt-1">Hello, {user.firstName}. Manage your firm's activity and clients.</p>
+            {user.appRole === 'Admin' ? (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gold bg-gold/10 px-2 py-0.5 rounded">Super Admin</span>
+                </div>
+                <h1 className="text-3xl font-serif font-bold text-navy">Administrative Control Panel</h1>
+                <p className="text-gray-500 mt-1">Welcome back, {user.firstName}. Full system authority enabled.</p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Legal Staff</span>
+                </div>
+                <h1 className="text-3xl font-serif font-bold text-navy">Staff Workspace</h1>
+                <p className="text-gray-500 mt-1">Welcome back, {user.firstName}. Manage your assigned cases and clients.</p>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -406,12 +421,17 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {[
+          {(user.appRole === 'Admin' ? [
             { label: 'Active Clients', value: stats.activeClients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
             { label: 'Awaiting Approval', value: stats.pendingVerifications + stats.pendingDocs, icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', urgent: true },
-            { label: 'Oversight Logs', value: systemLogs.length, icon: History, color: 'text-rose-600', bg: 'bg-rose-50' },
+            { label: 'Audit Log Entries', value: systemLogs.length, icon: History, color: 'text-rose-600', bg: 'bg-rose-50' },
             { label: 'Total Docs', value: documents.length, icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          ].map((stat, i) => (
+          ] : [
+            { label: 'Pending Appointments', value: stats.pendingVerifications, icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50', urgent: true },
+            { label: 'Documents to Review', value: stats.pendingDocs, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Total Docs on File', value: documents.length, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'All Appointments', value: appointments.length, icon: Briefcase, color: 'text-navy', bg: 'bg-navy/5' },
+          ]).map((stat, i) => (
             <div key={i} className={`bg-white p-6 rounded-2xl shadow-sm border transition-all ${stat.urgent && stat.value > 0 ? 'border-amber-200 ring-2 ring-amber-500/10' : 'border-gray-100'} flex items-center gap-4`}>
               <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
                 <stat.icon className="w-6 h-6" />
@@ -435,17 +455,15 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         <div className="flex flex-wrap items-center gap-1 bg-white p-1 rounded-2xl border border-gray-200 mb-8 w-fit shadow-sm">
           {[
             { id: 'overview', label: 'Overview', icon: Briefcase },
-            { id: 'appointments', label: 'Appointments & Verification', icon: Calendar },
-            { id: 'documents', label: 'Master Repository', icon: Shield },
+            { id: 'appointments', label: user.appRole === 'Admin' ? 'Appointments & Verification' : 'My Appointments Queue', icon: Calendar },
+            { id: 'documents', label: user.appRole === 'Admin' ? 'Master Repository' : 'Document Review', icon: Shield },
             { id: 'clients', label: 'Client Management', icon: UserCheck },
-            { id: 'users', label: 'Firm Directory', icon: Users },
-            { id: 'financial', label: 'Financial Oversight', icon: CreditCard, perm: 'VIEW_FINANCIALS' },
+            { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
+            { id: 'financial', label: 'Financial Oversight', icon: CreditCard, adminOnly: true },
             { id: 'audit', label: 'System Audit Logs', icon: History, adminOnly: true },
             { id: 'settings', label: 'My Settings', icon: Settings },
           ].filter(t => {
             if (t.adminOnly && user.appRole !== 'Admin') return false;
-            if (t.id === 'users' && user.appRole !== 'Admin') return false;
-            if (t.perm && !hasPermission(t.perm)) return false;
             return true;
           }).map((tab) => (
             <button
@@ -472,81 +490,94 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
           {activeTab === 'overview' ? (
             <div className="p-8">
               {/* Alert Bar */}
-              {(stats.pendingVerifications + stats.pendingDocs + payments.length) > 0 && (
+              {(stats.pendingVerifications + stats.pendingDocs) > 0 && (
                 <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-600" />
                     <div>
-                      <p className="text-sm font-bold text-amber-900">System Attention Required</p>
-                      <p className="text-xs text-amber-700">There are {stats.pendingVerifications + stats.pendingDocs} pending approvals and {payments.length} awaiting financial verification.</p>
+                      <p className="text-sm font-bold text-amber-900">Action Required</p>
+                      <p className="text-xs text-amber-700">
+                        {stats.pendingVerifications} pending appointment{stats.pendingVerifications !== 1 ? 's' : ''} and {stats.pendingDocs} document{stats.pendingDocs !== 1 ? 's' : ''} awaiting review.
+                      </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('appointments')}
-                    className="text-xs font-bold text-amber-700 hover:underline"
-                  >
+                  <button onClick={() => setActiveTab('appointments')} className="text-xs font-bold text-amber-700 hover:underline">
                     Resolve Now →
                   </button>
                 </div>
               )}
 
-              <div className="mb-8 p-6 bg-navy text-white rounded-2xl shadow-2xl relative overflow-hidden">
-                <div className="relative z-10">
-                   <h2 className="text-3xl font-serif font-bold mb-2">Super Admin Control Hub</h2>
-                   <p className="text-blue-200 max-w-xl">Absolute vertical authority enabled. Every system action is mirrored here for your final verification.</p>
+              {/* Role-specific hero banner */}
+              {user.appRole === 'Admin' ? (
+                <div className="mb-8 p-6 bg-navy text-white rounded-2xl shadow-2xl relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-gold bg-gold/20 px-2 py-0.5 rounded">Super Admin</span>
+                    </div>
+                    <h2 className="text-3xl font-serif font-bold mb-2">Administrative Control Hub</h2>
+                    <p className="text-blue-200 max-w-xl">Absolute vertical authority enabled. Every system action is logged for your final verification.</p>
+                  </div>
+                  <Shield className="absolute -right-10 -bottom-10 w-64 h-64 text-white/5 rotate-12" />
                 </div>
-                <Shield className="absolute -right-10 -bottom-10 w-64 h-64 text-white/5 rotate-12" />
-              </div>
+              ) : (
+                <div className="mb-8 p-6 bg-gradient-to-r from-blue-700 to-blue-900 text-white rounded-2xl shadow-xl relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-blue-200 bg-blue-600/40 px-2 py-0.5 rounded">Legal Staff</span>
+                    </div>
+                    <h2 className="text-3xl font-serif font-bold mb-2">Your Staff Workspace</h2>
+                    <p className="text-blue-200 max-w-xl">Review assigned appointments, verify client documents, and update case milestones from your workspace.</p>
+                  </div>
+                  <Briefcase className="absolute -right-10 -bottom-10 w-64 h-64 text-white/5 rotate-12" />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
-                  {/* Urgent Approval Queue */}
+                  {/* Pending items queue */}
                   <div>
                     <h3 className="font-bold text-navy mb-4 flex items-center gap-2">
-                       <AlertCircle className="w-5 h-5 text-amber-500" /> High-Priority Approval Gate
+                      <AlertCircle className="w-5 h-5 text-amber-500" />
+                      {user.appRole === 'Admin' ? 'High-Priority Approval Gate' : 'Your Pending Action Items'}
                     </h3>
                     <div className="bg-white border border-amber-100 rounded-2xl overflow-hidden shadow-sm">
-                      {appointments.filter(a => a.status === 'PENDING_ADMIN_APPROVAL').slice(0, 3).map(a => (
+                      {appointments.filter(a => a.status === 'PENDING_ADMIN_APPROVAL' || a.status === 'PENDING_VERIFICATION').slice(0, 3).map(a => (
                         <div key={a.id} className="p-5 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                           <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
-                                <Calendar className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-navy text-sm">{a.service_title}</p>
-                                <p className="text-[10px] text-gray-500">Client: {a.user_id} • {a.appointment_date}</p>
-                              </div>
-                           </div>
-                           <button 
-                            onClick={() => handleApprove(a.id)}
-                            className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
-                           >
-                              APPROVE NOW
-                           </button>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-navy text-sm">{a.service_title}</p>
+                              <p className="text-[10px] text-gray-500">Client: {a.user_id} • {a.appointment_date}</p>
+                            </div>
+                          </div>
+                          {hasPermission('MANAGE_APPOINTMENTS') && (
+                            <button onClick={() => handleApprove(a.id)} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                              APPROVE
+                            </button>
+                          )}
                         </div>
                       ))}
-                      {documents.filter(d => d.status === 'PENDING_ADMIN_APPROVAL').slice(0, 3).map(d => (
+                      {documents.filter(d => d.status === 'PENDING_ADMIN_APPROVAL').slice(0, 2).map(d => (
                         <div key={d.id} className="p-5 border-b border-gray-50 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                           <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                                <FileText className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-navy text-sm">{d.name}</p>
-                                <p className="text-[10px] text-gray-500">Uploader: {d.user_id} • {d.size}</p>
-                              </div>
-                           </div>
-                           <button 
-                            onClick={() => handleDocApprove(d.id)}
-                            className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors"
-                           >
-                              VERIFY DOC
-                           </button>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-navy text-sm">{d.name}</p>
+                              <p className="text-[10px] text-gray-500">Uploader: {d.user_id} • {d.size}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => handleDocApprove(d.id)} className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg hover:bg-emerald-100 transition-colors">
+                            VERIFY DOC
+                          </button>
                         </div>
                       ))}
                       {(stats.pendingVerifications + stats.pendingDocs) === 0 && (
                         <div className="p-10 text-center text-gray-400 text-sm italic">
-                          Clear skies. No pending approvals found in the local sync buffer.
+                          All clear — no pending items at this time.
                         </div>
                       )}
                     </div>
@@ -554,25 +585,51 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
                 </div>
 
                 <div className="space-y-8">
-                  {/* System Integrity */}
-                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 shadow-inner">
+                  {/* Quick links panel — differs per role */}
+                  <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
                     <h3 className="font-bold text-navy mb-4 flex items-center gap-2">
-                       <Shield className="w-4 h-4 text-navy" /> Portal Integrity
+                      <Shield className="w-4 h-4 text-navy" />
+                      {user.appRole === 'Admin' ? 'System Status' : 'Quick Actions'}
                     </h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
-                        <span className="text-xs text-gray-500 font-medium">Database Sync</span>
-                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded">REAL-TIME</span>
+                    {user.appRole === 'Admin' ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                          <span className="text-xs text-gray-500 font-medium">Database Sync</span>
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold rounded">REAL-TIME</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                          <span className="text-xs text-gray-500 font-medium">Encryption</span>
+                          <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded">AES-256-GCM</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                          <span className="text-xs text-gray-500 font-medium">Audit Buffer</span>
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[9px] font-bold rounded">SYNCED</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
+                          <span className="text-xs text-gray-500 font-medium">Audit Entries</span>
+                          <span className="text-sm font-bold text-navy">{systemLogs.length}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
-                        <span className="text-xs text-gray-500 font-medium">Encryption Status</span>
-                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold rounded">AES-256-GCM</span>
+                    ) : (
+                      <div className="space-y-3">
+                        <button onClick={() => setActiveTab('appointments')} className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-blue-200 transition-colors text-left">
+                          <Calendar className="w-4 h-4 text-blue-600" />
+                          <span className="text-xs font-bold text-navy">Review Appointments</span>
+                        </button>
+                        <button onClick={() => setActiveTab('documents')} className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-emerald-200 transition-colors text-left">
+                          <FileText className="w-4 h-4 text-emerald-600" />
+                          <span className="text-xs font-bold text-navy">Verify Documents</span>
+                        </button>
+                        <button onClick={() => setActiveTab('clients')} className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-amber-200 transition-colors text-left">
+                          <UserCheck className="w-4 h-4 text-amber-600" />
+                          <span className="text-xs font-bold text-navy">Update Client Milestones</span>
+                        </button>
+                        <button onClick={() => setActiveTab('settings')} className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-gray-300 transition-colors text-left">
+                          <Settings className="w-4 h-4 text-gray-500" />
+                          <span className="text-xs font-bold text-navy">My Profile Settings</span>
+                        </button>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100">
-                        <span className="text-xs text-gray-500 font-medium">Audit Buffer</span>
-                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[9px] font-bold rounded">SYNCED</span>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1115,8 +1172,17 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
           ) : activeTab === 'settings' ? (
              <div className="p-12 max-w-2xl">
                 <div className="mb-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${user.appRole === 'Admin' ? 'text-gold bg-gold/10' : 'text-blue-600 bg-blue-50'}`}>
+                      {user.appRole === 'Admin' ? 'Super Admin' : 'Legal Staff'}
+                    </span>
+                  </div>
                   <h3 className="font-serif text-3xl font-bold text-navy mb-2">My Profile & Settings</h3>
-                  <p className="text-gray-500 font-medium">Manage your personal credentials and system preferences.</p>
+                  <p className="text-gray-500 font-medium">
+                    {user.appRole === 'Admin' 
+                      ? 'Manage your administrative credentials and system-wide preferences.'
+                      : 'Update your personal profile and contact information.'}
+                  </p>
                 </div>
 
                 <form onSubmit={updateProfile} className="space-y-6">

@@ -18,7 +18,9 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
     { id: 'home', label: 'Home', roles: ['All'] },
     { id: 'blog', label: 'Blog', roles: ['All'] },
     { id: 'legal-research', label: 'Legal Research', roles: ['All'] },
+    { id: 'admin-dashboard', label: 'Management', roles: ['Admin'] },
     { id: 'ai-center', label: 'AI Center', roles: ['Admin'] },
+    { id: 'staff-portal', label: 'Staff Portal', roles: ['Staff'] },
     { id: 'about-us', label: 'About Us', roles: ['All'] },
     { id: 'contact-us', label: 'Contact Us', roles: ['All'] },
   ];
@@ -79,7 +81,7 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
             {isLoggedIn ? (
               <>
                 <button
-                  onClick={() => onNavigate(user?.appRole === 'Admin' ? 'ai-center' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
+                  onClick={() => onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
                   className="flex items-center gap-2 text-sm font-semibold text-navy hover:text-gold transition-colors rounded-lg px-2 py-1 outline-none"
                 >
                   <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white overflow-hidden shadow-sm border-2 border-gold/30">
@@ -120,7 +122,7 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           <div className="md:hidden flex items-center gap-2">
             {isLoggedIn ? (
               <button
-                onClick={() => onNavigate(user?.appRole === 'Admin' ? 'ai-center' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
+                onClick={() => onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
                 className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white border-2 border-gold/30"
               >
                 <span className="text-xs font-bold">{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
@@ -201,7 +203,7 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
                   </div>
                 </div>
                 <button
-                  onClick={() => { onNavigate(user?.appRole === 'Admin' ? 'ai-center' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard'); setIsMobileMenuOpen(false); }}
+                  onClick={() => { onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard'); setIsMobileMenuOpen(false); }}
                   className="w-full bg-gold text-white font-bold py-3.5 rounded-xl text-sm"
                 >
                   Go to Dashboard

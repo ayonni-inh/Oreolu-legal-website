@@ -10,6 +10,7 @@ import AboutUs from './components/AboutUs';
 import ContactUs from './components/ContactUs';
 import LegalDashboard from './components/LegalDashboard';
 import AdminAIPanel from './components/AdminAIPanel';
+import ClientDashboard from './components/ClientDashboard';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import WelcomeTour from './components/WelcomeTour';
@@ -61,9 +62,21 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return currentUser?.appRole === 'Admin' ? (
-          <LegalDashboard user={currentUser} />
-        ) : <LegalDashboard user={currentUser} />;
+        if (!currentUser) return <Forbidden />;
+        if (currentUser.appRole === 'Client') {
+          return (
+            <ClientDashboard
+              user={currentUser}
+              onUpdateUser={(data) => setCurrentUser((prev: any) => ({ ...prev, ...data }))}
+              onBookService={(service) => setSelectedService(service)}
+              refreshTrigger={dashboardRefreshTrigger}
+            />
+          );
+        }
+        if (currentUser.appRole === 'Staff') {
+          return <LegalDashboard user={currentUser} />;
+        }
+        return <Forbidden />;
       case 'legal-research':
         return <LegalResearch />;
       case 'about-us':
@@ -82,7 +95,11 @@ export default function App() {
           <AdminAIPanel user={currentUser} />
         ) : <Forbidden />;
       case 'staff-portal':
-        return ['Admin', 'Staff'].includes(currentUser?.appRole) ? (
+        return currentUser?.appRole === 'Staff' ? (
+          <LegalDashboard user={currentUser} />
+        ) : <Forbidden />;
+      case 'admin-dashboard':
+        return currentUser?.appRole === 'Admin' ? (
           <LegalDashboard user={currentUser} />
         ) : <Forbidden />;
       case 'home':
@@ -117,7 +134,7 @@ export default function App() {
     
     // Auto-navigate based on role if not a pending service
     if (!pendingService) {
-      if (userData?.appRole === 'Admin') setCurrentPage('ai-center');
+      if (userData?.appRole === 'Admin') setCurrentPage('admin-dashboard');
       else if (userData?.appRole === 'Staff') setCurrentPage('staff-portal');
       else setCurrentPage('dashboard');
     } else {
