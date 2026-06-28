@@ -210,24 +210,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [closureReason, setClosureReason] = useState('');
   
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'case_update',
-      title: 'Case Milestone Reached',
-      message: 'Your trademark application for "AcmeFlow" has moved to Pending Review.',
-      time: '1 hour ago',
-      isRead: false
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: 'New Message',
-      message: 'Sarah Jenkins sent you a new message regarding your incorporation.',
-      time: '2 hours ago',
-      isRead: true
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -427,8 +410,33 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
     return () => clearTimeout(timer);
   }, []);
 
-  const markAllAsRead = () => {
+  // Poll notifications from server every 30s
+  useEffect(() => {
+    const uid = localUser.id || localUser.clientId;
+    if (!uid) return;
+    const fetchNotifs = async () => {
+      try {
+        const res = await fetch(`/api/notifications/${encodeURIComponent(uid)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setNotifications(data.map((n: any) => ({
+            ...n,
+            time: n.time ? new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'
+          })));
+        }
+      } catch { /* silent */ }
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(interval);
+  }, [localUser.id, localUser.clientId]);
+
+  const markAllAsRead = async () => {
+    const uid = localUser.id || localUser.clientId;
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    if (uid) {
+      try { await fetch(`/api/notifications/${encodeURIComponent(uid)}/mark-read`, { method: 'PATCH' }); } catch { /* silent */ }
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;

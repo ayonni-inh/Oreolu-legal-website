@@ -363,6 +363,22 @@ const ONBOARDING_FORMS = [
 // Multer — memory storage for Supabase Storage uploads
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
+// In-app notification store (keyed by userId)
+const notificationsStore: Record<string, any[]> = {};
+
+function pushNotification(userId: string, notif: { type: string; title: string; message: string }) {
+  if (!userId) return;
+  notificationsStore[userId] = notificationsStore[userId] || [];
+  notificationsStore[userId].unshift({
+    id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    ...notif,
+    time: new Date().toISOString(),
+    isRead: false
+  });
+  // Cap at 50 per user
+  if (notificationsStore[userId].length > 50) notificationsStore[userId].length = 50;
+}
+
 export const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
@@ -372,6 +388,23 @@ async function startServer() {
   // API routes FIRST
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
+  });
+
+  // Notifications API
+  app.get("/api/notifications/:userId", (req, res) => {
+    res.json(notificationsStore[req.params.userId] || []);
+  });
+  app.patch("/api/notifications/:userId/mark-read", (req, res) => {
+    const store = notificationsStore[req.params.userId];
+    if (store) store.forEach(n => { n.isRead = true; });
+    res.json({ success: true });
+  });
+  app.delete("/api/notifications/:userId/:notifId", (req, res) => {
+    const { userId, notifId } = req.params;
+    if (notificationsStore[userId]) {
+      notificationsStore[userId] = notificationsStore[userId].filter(n => n.id !== notifId);
+    }
+    res.json({ success: true });
   });
 
   // Appointments API
@@ -1004,6 +1037,20 @@ async function startServer() {
     if (nextAction) c.nextAction = nextAction;
     if (nextActionDate) c.nextActionDate = nextActionDate;
     recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'CASE_UPDATED', target: id, details: `Updated case ${id}` });
+    // Push in-app notification to client
+    if (status && c.clientId) {
+      const label = status === 'ACTIVE' ? 'In Progress'
+        : status === 'HEARING_SCHEDULED' ? 'Hearing Scheduled'
+        : status === 'CLOSED' ? 'Closed'
+        : status === 'JUDGMENT' ? 'Judgment Delivered'
+        : status === 'REVIEW' ? 'Under Review'
+        : status;
+      pushNotification(c.clientId, {
+        type: 'case_update',
+        title: 'Case Status Updated',
+        message: `Your case "${c.title}" has been updated to: ${label}`
+      });
+    }
     res.json(c);
   });
 
@@ -1018,6 +1065,15 @@ async function startServer() {
     caseTimelines[id] = caseTimelines[id] || [];
     caseTimelines[id].unshift(entry);
     recordActivity({ actorName: adminName || 'Admin', actorRole: 'Admin', category: 'CASE', action: 'TIMELINE_ENTRY', target: id, details: `${event}: ${detail || ''}` });
+    // Push in-app notification to the client for this case
+    const relatedCase = cases.find(x => x.id === id);
+    if (relatedCase?.clientId) {
+      pushNotification(relatedCase.clientId, {
+        type: 'case_update',
+        title: 'Case Update',
+        message: `${event}${detail ? ': ' + detail : ''} — ${relatedCase.title}`
+      });
+    }
     res.json(entry);
   });
 
@@ -1874,4 +1930,4 @@ Respond ONLY with a JSON array of 6 objects with these exact keys:
   }
 }
 
-startServer();
+export const serverReady = startServer();

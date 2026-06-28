@@ -1,3 +1,11 @@
-import { app } from "../server";
+import { app, serverReady } from "../server";
 
-export default app;
+let initialized = false;
+
+export default async function handler(req: any, res: any) {
+  if (!initialized) {
+    await serverReady;
+    initialized = true;
+  }
+  return app(req, res);
+}
