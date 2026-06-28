@@ -62,6 +62,7 @@ export default function ContactUs() {
                 <div>
                   <h3 className="font-bold text-navy text-lg mb-1">Our Headquarters</h3>
                   <p className="text-gray-600 leading-relaxed">
+                    HERITAGE & GRACE CHAMBERS,<br />
                     SUITE C20/C21, CHERUB MALL,<br />
                     New Road Bus Stop,<br />
                     KM 18 Lekki - Epe Expy,<br />
