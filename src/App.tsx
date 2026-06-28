@@ -215,6 +215,7 @@ export default function App() {
                 <li><a href="tel:+2348033201909" className="hover:text-white transition-colors">+234 803 320 1909</a></li>
                 <li><a href="mailto:contact@ogagidi.com" className="hover:text-white transition-colors">contact@ogagidi.com</a></li>
                 <li className="leading-relaxed text-xs">
+                  HERITAGE &amp; GRACE CHAMBERS,<br />
                   SUITE C20/C21, CHERUB MALL,<br />
                   New Road Bus Stop,<br />
                   KM 18 Lekki - Epe Expy,<br />
