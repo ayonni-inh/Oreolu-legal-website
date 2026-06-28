@@ -1398,7 +1398,7 @@ ${summary}
 Recent activity stream (newest first):
 ${recent}`;
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         systemInstruction: systemPrompt
       });
 
@@ -1423,7 +1423,7 @@ ${recent}`;
         return res.status(503).json({ error: "AI Service unavailable" });
       }
 
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
       const prompt = `
         As an AI Legal Strategist for OROELU GODWIN AGIDI & CO, analyze this client's profile and provide 3 actionable insights or recommendations.
@@ -1466,7 +1466,7 @@ ${recent}`;
       if (!genAI) {
         return res.json({ posts: fallbackBlogPosts });
       }
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const prompt = `Generate 6 recent and highly relevant legal news articles or blog posts. 
       Focus on worldwide law news, but specifically target topics that Africans and Nigerians would be interested in (e.g., international trade laws affecting Africa, tech regulations in Nigeria, human rights, immigration, corporate law developments in Africa, etc.).
       
@@ -1507,7 +1507,7 @@ ${recent}`;
       }
 
       const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         systemInstruction: `You are a professional AI Legal Assistant for the Nigerian law firm "OROELU GODWIN AGIDI & CO". 
         Your goal is to provide accurate information and guidance on Nigerian law, including corporate law, litigation, property law, family law, and constitutional matters.
         
