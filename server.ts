@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import { Resend } from "resend";
 import path from "path";
 import crypto from "crypto";
@@ -360,10 +359,10 @@ const ONBOARDING_FORMS = [
   { id: 'family', label: 'Family Law Intake', fields: ['Parties', 'Marriage Date', 'Children', 'Issue', 'Desired Outcome'] }
 ];
 
-async function startServer() {
-  const app = express();
-  const PORT = Number(process.env.PORT) || 5000;
+export const app = express();
+const PORT = Number(process.env.PORT) || 5000;
 
+async function startServer() {
   app.use(express.json());
 
   // API routes FIRST
@@ -1648,6 +1647,7 @@ ${recent}`;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true, allowedHosts: true },
       appType: "spa",
@@ -1661,9 +1661,11 @@ ${recent}`;
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
 startServer();
