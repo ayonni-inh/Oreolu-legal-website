@@ -29,6 +29,13 @@ export default function LegalChatbot() {
     scrollToBottom();
   }, [messages]);
 
+  // Allow other parts of the app to open the chatbot via custom event
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    document.addEventListener('open-chatbot', handleOpen);
+    return () => document.removeEventListener('open-chatbot', handleOpen);
+  }, []);
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 

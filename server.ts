@@ -927,6 +927,47 @@ async function startServer() {
   });
 
   // Cases CRUD
+  // Client-facing: get my cases with lawyer name + timeline
+  app.get("/api/cases/client/:userId", (req, res) => {
+    const { userId } = req.params;
+    const statusProgress: Record<string, number> = {
+      INTAKE: 5, REVIEW: 20, DISCOVERY: 35, ACTIVE: 55,
+      HEARING_SCHEDULED: 70, JUDGMENT: 85, CLOSED: 100
+    };
+    const clientCases = cases
+      .filter(c => c.clientId === userId)
+      .map(c => {
+        const lawyer = lawyers.find(l => l.id === c.assignedLawyerId);
+        const timeline = (caseTimelines[c.id] || []).slice(0, 8);
+        const nextDateFormatted = c.nextActionDate
+          ? new Date(c.nextActionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'TBD';
+        const openedFormatted = c.createdAt
+          ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Unknown';
+        return {
+          id: c.id,
+          title: c.title,
+          type: c.category,
+          status: c.status === 'ACTIVE' ? 'In Progress'
+            : c.status === 'HEARING_SCHEDULED' ? 'Hearing Scheduled'
+            : c.status === 'CLOSED' ? 'Closed'
+            : c.status === 'INTAKE' ? 'Intake'
+            : c.status === 'JUDGMENT' ? 'Judgment'
+            : 'Pending Review',
+          rawStatus: c.status,
+          progress: statusProgress[c.status] || 10,
+          priority: c.priority,
+          attorney: lawyer?.name || 'Awaiting Assignment',
+          nextStep: c.nextAction || 'Awaiting next step',
+          nextDate: nextDateFormatted,
+          openedDate: openedFormatted,
+          timeline
+        };
+      });
+    res.json(clientCases);
+  });
+
   app.get("/api/cases", (req, res) => {
     const role = req.query.role as string;
     if (role !== 'Admin' && role !== 'Staff') return res.status(403).json({ error: "Forbidden" });

@@ -277,6 +277,29 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
   }, [activeTab, localUser.clientId, refreshTrigger]);
 
   useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        setIsLoadingCases(true);
+        const uid = localUser.clientId || localUser.id || 'client-1';
+        const res = await fetch(`/api/cases/client/${encodeURIComponent(uid)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setActiveCases(Array.isArray(data) ? data : []);
+        } else {
+          setActiveCases([]);
+        }
+      } catch {
+        setActiveCases([]);
+      } finally {
+        setIsLoadingCases(false);
+      }
+    };
+    if (activeTab === 'cases' || activeTab === 'overview') {
+      fetchCases();
+    }
+  }, [activeTab, localUser.clientId, localUser.id]);
+
+  useEffect(() => {
     const fetchProgress = async () => {
       try {
         const res = await fetch(`/api/case-progress/${localUser.clientId || 'client-1'}`);
@@ -349,30 +372,9 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
     { id: 2, sender: "You", role: "Client", time: "Yesterday", text: "Thank you, Sarah. I will review it shortly." }
   ];
 
-  const [activeCases, setActiveCases] = useState([
-    {
-      id: "CASE-2024-089",
-      title: "Corporate Restructuring & Incorporation",
-      type: "Corporate Law",
-      status: "In Progress",
-      progress: 65,
-      attorney: "Sarah Jenkins",
-      nextStep: "Review and sign Articles of Incorporation",
-      nextDate: "Oct 15, 2024",
-      openedDate: "Sep 10, 2024"
-    },
-    {
-      id: "CASE-2024-112",
-      title: "Trademark Registration: 'AcmeFlow'",
-      type: "Intellectual Property",
-      status: "Pending Review",
-      progress: 25,
-      attorney: "David Chen",
-      nextStep: "Awaiting USPTO initial examination",
-      nextDate: "Nov 01, 2024",
-      openedDate: "Oct 02, 2024"
-    }
-  ]);
+  const [activeCases, setActiveCases] = useState<any[]>([]);
+  const [isLoadingCases, setIsLoadingCases] = useState(true);
+  const [expandedCaseTimeline, setExpandedCaseTimeline] = useState<string | null>(null);
 
   const handleCloseCase = (caseId: string) => {
     setSelectedCaseId(caseId);
@@ -863,10 +865,31 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
       case 'cases':
         return (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="font-serif text-xl font-bold text-navy">Active Cases</h3>
-              <p className="text-sm text-gray-500 mt-1">Track the progress and status of your ongoing legal matters.</p>
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-serif text-xl font-bold text-navy">Active Cases</h3>
+                <p className="text-sm text-gray-500 mt-1">Track the progress and status of your ongoing legal matters.</p>
+              </div>
+              {!isLoadingCases && (
+                <span className="text-xs font-bold text-navy bg-navy/5 px-3 py-1.5 rounded-full border border-navy/10">
+                  {activeCases.length} {activeCases.length === 1 ? 'Matter' : 'Matters'}
+                </span>
+              )}
             </div>
+            {isLoadingCases ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm text-gray-500 font-medium">Loading your cases…</p>
+              </div>
+            ) : activeCases.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center px-6">
+                <div className="w-16 h-16 bg-navy/5 rounded-2xl flex items-center justify-center mb-4">
+                  <Briefcase className="w-8 h-8 text-navy/30" />
+                </div>
+                <h4 className="text-lg font-bold text-navy mb-2">No Active Cases</h4>
+                <p className="text-gray-500 text-sm max-w-sm">You have no active legal matters at this time. Cases opened by your legal team will appear here with real-time status updates.</p>
+              </div>
+            ) : (
             <div className="divide-y divide-gray-100">
               {activeCases.map(c => (
                 <div key={c.id} className="p-6 hover:bg-gray-50 transition-colors">
@@ -958,9 +981,41 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
                       </div>
                     </div>
                   </div>
+
+                  {/* Timeline toggle */}
+                  {c.timeline && c.timeline.length > 0 && (
+                    <div className="mt-5 pt-5 border-t border-gray-100">
+                      <button
+                        onClick={() => setExpandedCaseTimeline(expandedCaseTimeline === c.id ? null : c.id)}
+                        className="flex items-center gap-2 text-xs font-bold text-navy hover:text-gold transition-colors uppercase tracking-widest"
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        {expandedCaseTimeline === c.id ? 'Hide Timeline' : `Case History (${c.timeline.length} entries)`}
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedCaseTimeline === c.id ? 'rotate-180' : ''}`} />
+                      </button>
+                      {expandedCaseTimeline === c.id && (
+                        <div className="mt-4 relative pl-5">
+                          <div className="absolute left-1.5 top-0 bottom-0 w-0.5 bg-gray-200 rounded-full" />
+                          {c.timeline.map((entry: any, idx: number) => (
+                            <div key={entry.id || idx} className="relative mb-4 last:mb-0">
+                              <div className="absolute -left-3.5 top-1 w-2.5 h-2.5 rounded-full bg-gold border-2 border-white shadow-sm" />
+                              <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="text-xs font-bold text-navy">{entry.event}</span>
+                                  <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                                {entry.detail && <p className="text-xs text-gray-500 leading-relaxed">{entry.detail}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+            )}
           </div>
         );
       case 'appointments':

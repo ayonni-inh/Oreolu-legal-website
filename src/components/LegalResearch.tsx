@@ -318,10 +318,7 @@ export default function LegalResearch() {
             </div>
           </div>
           <button
-            onClick={() => {
-              const chatFab = document.querySelector('.fixed.bottom-6.right-6 button, button[data-chat-fab]') as HTMLButtonElement | null;
-              chatFab?.click();
-            }}
+            onClick={() => document.dispatchEvent(new CustomEvent('open-chatbot'))}
             className="bg-gold hover:bg-gold-hover text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-gold/20 hover:-translate-y-1 whitespace-nowrap"
           >
             Start AI Consultation
