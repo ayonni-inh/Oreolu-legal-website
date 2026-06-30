@@ -361,7 +361,8 @@ const ONBOARDING_FORMS = [
 ];
 
 // Multer — memory storage for Supabase Storage uploads
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+// 4 MB limit keeps us under Vercel's 4.5 MB serverless body cap
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 * 1024 * 1024 } });
 
 // In-app notification store (keyed by userId)
 const notificationsStore: Record<string, any[]> = {};
@@ -381,6 +382,14 @@ function pushNotification(userId: string, notif: { type: string; title: string; 
 
 export const app = express();
 const PORT = Number(process.env.PORT) || 5000;
+
+// Resolve the public base URL for invite links across environments
+function getBaseUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return `http://localhost:${PORT}`;
+}
 
 async function startServer() {
   app.use(express.json());
@@ -1138,9 +1147,7 @@ async function startServer() {
 
     const token = crypto.randomBytes(32).toString('hex');
     const invId = `inv-${Date.now()}`;
-    const baseUrl = process.env.REPLIT_DEV_DOMAIN
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : `http://localhost:${PORT}`;
+    const baseUrl = getBaseUrl();
     const inviteUrl = `${baseUrl}/?invite=${token}`;
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -1293,7 +1300,7 @@ async function startServer() {
     // Generate new token + reset expiry
     const newToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const baseUrl = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : `http://localhost:${PORT}`;
+    const baseUrl = getBaseUrl();
     const newInviteUrl = `${baseUrl}/?invite=${newToken}`;
     inv.token = newToken; inv.inviteUrl = newInviteUrl;
     inv.status = 'PENDING'; inv.expiresAt = expiresAt; inv.acceptedAt = undefined;
@@ -1375,9 +1382,7 @@ async function startServer() {
       }
 
       // Send welcome email
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : `http://localhost:${process.env.PORT || 5000}`;
+      const baseUrl = getBaseUrl();
       const welcomeHtml = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
         <div style="background:#0a2540;padding:28px 32px;">
           <div style="color:#c9a14a;font-size:11px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;">Welcome to the Firm</div>
