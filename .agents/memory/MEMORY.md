@@ -2,3 +2,4 @@
 - [Invitation workflow](invitation-workflow.md) — staff/client invitations tracked in Invitation[] in-memory + Supabase; resend endpoint refreshes token; schema in supabase-schema.sql
 - [Client ID & email flow](client-id-email-flow.md) — OGA-YYYY-NNNNN format IDs (generateClientId helper); self-registration always Client role; welcome email sent server-side; sendEmail() helper gracefully no-ops if RESEND_API_KEY absent
 - [Appointment notifications](appointment-notifications.md) — POST /api/appointments notifies all admin+staff emails; PATCH /api/appointments/:id/status sends client confirmation email when approved (notifyClient:true); DELETE /api/appointments/:id for cancellation
+- [Secrets & env vars configured](secrets-configured.md) — GEMINI_API_KEY, RESEND_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY saved as Replit Secrets; SUPABASE_URL and SUPABASE_JWKS_URL saved as shared env vars
