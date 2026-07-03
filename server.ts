@@ -40,7 +40,11 @@ const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE
 let supabase: any = null;
 try {
   if (supabaseUrl && supabaseKey && (supabaseUrl.startsWith('http://') || supabaseUrl.startsWith('https://'))) {
-    supabase = createClient(supabaseUrl, supabaseKey);
+    import('ws').then(({ default: ws }) => {
+      supabase = createClient(supabaseUrl, supabaseKey, { realtime: { transport: ws } });
+    }).catch(() => {
+      supabase = createClient(supabaseUrl, supabaseKey);
+    });
     console.log('Supabase client initialized successfully.');
   } else if (supabaseUrl || supabaseKey) {
     console.warn('Supabase URL or Key is invalid. Using in-memory fallback.');
