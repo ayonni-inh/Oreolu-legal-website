@@ -1,6 +1,7 @@
 {
   "version": 2,
   "framework": null,
+  "installCommand": "npm install",
   "buildCommand": "npm run build:client",
   "outputDirectory": "dist",
   "functions": {
