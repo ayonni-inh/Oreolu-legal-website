@@ -78,6 +78,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
   const [uploadError, setUploadError] = useState<string | null>(null);
   
   const [localUser, setLocalUser] = useState({
+    id: user?.id || 'client-1',
     firstName: user?.firstName || 'Jane',
     lastName: user?.lastName || 'Doe',
     companyName: user?.companyName || 'Acme Corp',
@@ -487,7 +488,6 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
       const formData = new FormData();
       formData.append('file', file);
       formData.append('userId', localUser.clientId || 'client-1');
-      formData.append('role', localUser.appRole || 'Client');
       formData.append('uploaderName', `${localUser.firstName} ${localUser.lastName}`);
 
       // Simulate progress while uploading

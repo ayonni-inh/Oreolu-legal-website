@@ -75,8 +75,8 @@ export default function AdminAIPanel({ user }: Props) {
     setLoading(true);
     try {
       const [a, c, lw, cl, rm, sg, co, fm, sb, doc, an, inv] = await Promise.all([
-        fetch(`/api/activity?role=Admin&limit=200`).then(r => r.json()),
-        fetch(`/api/cases?role=Admin`).then(r => r.json()),
+        fetch(`/api/activity?limit=200`).then(r => r.json()),
+        fetch(`/api/cases`).then(r => r.json()),
         fetch(`/api/lawyers`).then(r => r.json()),
         fetch(`/api/clients`).then(r => r.json()),
         fetch(`/api/reminders`).then(r => r.json()),
@@ -84,9 +84,9 @@ export default function AdminAIPanel({ user }: Props) {
         fetch(`/api/consultations`).then(r => r.json()),
         fetch(`/api/onboarding/forms`).then(r => r.json()),
         fetch(`/api/onboarding/submissions`).then(r => r.json()),
-        fetch(`/api/documents?role=Admin`).then(r => r.json()),
+        fetch(`/api/documents`).then(r => r.json()),
         fetch(`/api/analytics`).then(r => r.json()),
-        fetch(`/api/invitations?role=Admin`).then(r => r.json())
+        fetch(`/api/invitations`).then(r => r.json())
       ]);
       setActivity(Array.isArray(a) ? a : []);
       setCases(Array.isArray(c) ? c : []);
@@ -109,7 +109,7 @@ export default function AdminAIPanel({ user }: Props) {
 
   useEffect(() => { refreshAll(); }, []);
   useEffect(() => {
-    const id = setInterval(() => { fetch(`/api/activity?role=Admin&limit=50`).then(r => r.json()).then(d => Array.isArray(d) && setActivity(prev => mergeActivity(prev, d))).catch(() => {}); }, 8000);
+    const id = setInterval(() => { fetch(`/api/activity?limit=50`).then(r => r.json()).then(d => Array.isArray(d) && setActivity(prev => mergeActivity(prev, d))).catch(() => {}); }, 8000);
     return () => clearInterval(id);
   }, []);
 
@@ -194,7 +194,7 @@ export default function AdminAIPanel({ user }: Props) {
     if (!selectedCaseId || !newNote.trim()) return;
     await fetch(`/api/cases/${selectedCaseId}/notes`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ author: adminName, role: 'Admin', text: newNote })
+      body: JSON.stringify({ author: adminName, text: newNote })
     });
     setNewNote('');
     fetch(`/api/cases/${selectedCaseId}/notes`).then(r => r.json()).then(setCaseNotes);

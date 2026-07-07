@@ -133,7 +133,6 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           time: selectedTime,
           price: '$0',
           trackingNumber,
-          role: user?.appRole || 'Client',
           requesterName: user ? `${user.firstName} ${user.lastName}` : 'Guest Client',
           consultationType,
           practiceArea,

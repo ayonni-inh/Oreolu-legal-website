@@ -104,7 +104,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
 
   const fetchLogs = async () => {
     try {
-      const res = await fetch(`/api/admin/logs?role=${user.appRole}`);
+      const res = await fetch(`/api/admin/logs`);
       const data = await res.json();
       setSystemLogs(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -189,7 +189,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`/api/users?role=${user.appRole}`);
+      const res = await fetch(`/api/users`);
       const data = await res.json();
       setAllUsers(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -259,7 +259,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
       const res = await fetch(`/api/case-progress/${selectedClientId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ milestones, role: user.appRole })
+        body: JSON.stringify({ milestones })
       });
       if (res.ok) {
         alert("Milestones updated successfully. Client dashboard will reflect changes.");
@@ -284,7 +284,6 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: 'APPROVED', 
-          role: 'Admin',
           adminName: `${user.firstName} ${user.lastName}`,
           notifyClient: true
         })
@@ -311,7 +310,6 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status: 'APPROVED', 
-          role: 'Admin',
           adminName: `${user.firstName} ${user.lastName}`
         })
       });
@@ -333,8 +331,8 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
     setIsLoading(true);
     try {
       const [apptsRes, docsRes] = await Promise.all([
-        fetch(`/api/appointments?role=${user.appRole}`),
-        fetch(`/api/documents?role=${user.appRole}`)
+        fetch(`/api/appointments`),
+        fetch(`/api/documents`)
       ]);
 
       const appts = await apptsRes.json();

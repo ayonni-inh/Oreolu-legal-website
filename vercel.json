@@ -1,20 +1,6 @@
 {
   "version": 2,
-  "framework": null,
-  "installCommand": "npm install --no-audit --no-fund",
-  "buildCommand": "npm run build:client",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/index.ts": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/index.ts" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ],
+  "framework": "nextjs",
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
