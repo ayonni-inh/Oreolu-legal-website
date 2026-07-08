@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Bot, User, Loader2, Scale, AlertCircle } from 'lucide-react';
+import { MessageSquare, Send, X, Bot, User, Loader2, Scale, AlertCircle, ArrowDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface Message {
@@ -19,15 +19,30 @@ export default function LegalChatbot() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShowScrollButton(false);
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Show/hide scroll-to-bottom button based on scroll position
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const nearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+      setShowScrollButton(!nearBottom);
+    };
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Allow other parts of the app to open the chatbot via custom event
   useEffect(() => {
@@ -112,19 +127,19 @@ export default function LegalChatbot() {
           id="legal-chatbot-window"
           role="dialog"
           aria-label="Legal AI Assistant Chat"
-          className="fixed bottom-24 right-6 w-[90vw] md:w-[400px] h-[70vh] md:h-[600px] max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-4 duration-300"
+          className="fixed bottom-24 right-4 md:right-6 w-[85vw] md:w-[360px] h-[60vh] md:h-[500px] max-h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-4 duration-300"
         >
           {/* Header */}
-          <div className="bg-navy p-4 text-white flex items-center justify-between">
+          <div className="bg-navy p-3 md:p-4 text-white flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gold/20 rounded-lg flex items-center justify-center">
-                <Scale className="w-6 h-6 text-gold" aria-hidden="true" />
+              <div className="w-9 h-9 md:w-10 md:h-10 bg-gold/20 rounded-lg flex items-center justify-center">
+                <Scale className="w-5 h-5 md:w-6 md:h-6 text-gold" aria-hidden="true" />
               </div>
               <div>
-                <h3 className="font-serif font-bold text-sm">Legal AI Assistant</h3>
+                <h3 className="font-serif font-bold text-base">Legal AI Assistant</h3>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-[10px] text-gray-300 uppercase tracking-widest font-bold">Online</span>
+                  <span className="text-xs text-gray-300 uppercase tracking-widest font-bold">Online</span>
                 </div>
               </div>
             </div>
@@ -138,16 +153,17 @@ export default function LegalChatbot() {
           </div>
 
           {/* Disclaimer */}
-          <div className="bg-yellow-50 p-2 px-4 border-b border-yellow-100 flex items-start gap-2" role="note">
-            <AlertCircle className="w-3.5 h-3.5 text-yellow-600 shrink-0 mt-0.5" aria-hidden="true" />
-            <p className="text-[10px] text-yellow-800 leading-tight">
+          <div className="bg-yellow-50 p-2 px-3 md:px-4 border-b border-yellow-100 flex items-start gap-2 shrink-0" role="note">
+            <AlertCircle className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" aria-hidden="true" />
+            <p className="text-xs text-yellow-800 leading-snug">
               Informational only. No attorney-client relationship is formed. Consult our attorneys for formal advice.
             </p>
           </div>
 
           {/* Messages Area */}
           <div 
-            className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-gray-50/50"
+            ref={messagesContainerRef}
+            className="flex-1 min-h-0 overflow-y-auto p-3 md:p-4 space-y-3 md:space-y-4 bg-gray-50/50 relative"
             aria-live="polite"
             aria-relevant="additions"
           >
@@ -159,12 +175,12 @@ export default function LegalChatbot() {
                   }`}>
                     {msg.role === 'user' ? <User className="w-4 h-4" aria-hidden="true" /> : <Bot className="w-4 h-4" aria-hidden="true" />}
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm shadow-sm overflow-hidden break-words ${
+                  <div className={`p-3 rounded-2xl text-base shadow-sm overflow-hidden break-words ${
                     msg.role === 'user' 
                       ? 'bg-navy text-white rounded-tr-none' 
                       : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                   }`}>
-                    <div className="prose prose-sm max-w-none leading-relaxed text-inherit [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_pre]:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&>*]:text-inherit">
+                    <div className="prose prose-base max-w-none leading-relaxed text-inherit [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_pre]:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&>*]:text-inherit">
                       <ReactMarkdown
                         components={{
                           a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="underline" />,
@@ -174,7 +190,7 @@ export default function LegalChatbot() {
                         {msg.text}
                       </ReactMarkdown>
                     </div>
-                    <p className={`text-[9px] mt-1 opacity-60 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                    <p className={`text-[10px] mt-1 opacity-60 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                       <span className="sr-only">Sent at </span>
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -196,6 +212,17 @@ export default function LegalChatbot() {
               </div>
             )}
             <div ref={messagesEndRef} />
+
+            {/* Scroll-to-bottom button */}
+            {showScrollButton && (
+              <button
+                onClick={scrollToBottom}
+                aria-label="Scroll to latest message"
+                className="absolute bottom-3 right-3 md:bottom-4 md:right-4 bg-white text-navy border border-gray-200 shadow-md hover:shadow-lg p-2 rounded-full transition-all z-10 focus-visible:ring-2 focus-visible:ring-gold outline-none"
+              >
+                <ArrowDown className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
           </div>
 
           {/* Input Area */}
@@ -209,7 +236,7 @@ export default function LegalChatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Ask about Nigerian law..."
-                className="w-full border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all resize-none max-h-32"
+                className="w-full border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-base focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all resize-none max-h-32"
                 disabled={isLoading}
                 style={{ minHeight: '48px' }}
               />
@@ -224,7 +251,7 @@ export default function LegalChatbot() {
                 <Send className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
-            <p className="text-[9px] text-center text-gray-400 mt-2">
+            <p className="text-[10px] text-center text-gray-400 mt-2">
               Powered by Gemini 2.5 • OROELU GODWIN AGIDI & CO
             </p>
           </div>
