@@ -307,7 +307,7 @@ export let fallbackUsers = [
     id: "client-1",
     firstName: "Godwin",
     lastName: "Agidi",
-    email: "ogouifemi@gmail.com",
+    email: "client@example.com",
     appRole: "Client",
     clientId: "client-1",
     companyName: "Agidi Tech",
@@ -323,12 +323,14 @@ export let fallbackUsers = [
     clientId: "legal-1",
     status: "ACTIVE",
     permissions: ["VIEW_DOCUMENTS", "MANAGE_APPOINTMENTS"],
+    passwordHash:
+      "fallback-not-set",
   },
   {
     id: "admin-1",
-    firstName: "John",
-    lastName: "Admin",
-    email: "admin@firm.com",
+    firstName: "Admin",
+    lastName: "User",
+    email: "ogouifemi@gmail.com",
     appRole: "Admin",
     clientId: "admin-1",
     status: "ACTIVE",
@@ -338,6 +340,8 @@ export let fallbackUsers = [
       "MANAGE_APPOINTMENTS",
       "MANAGE_USERS",
     ],
+    passwordHash:
+      "5d47e24e0d610e259487fae3921b3ab4:d4cc870441e6c0b853a893f15d9015930ad0400efbefe0e7d27736817e07beb9bc8e468d3a9f0430800f13baaccfe59d2ff5545a13aadb8eac6a6eba83eed638",
   },
 ];
 
