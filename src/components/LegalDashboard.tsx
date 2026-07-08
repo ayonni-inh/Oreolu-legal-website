@@ -46,9 +46,10 @@ import {
 interface LegalDashboardProps {
   user: any;
   onLogout?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-export default function LegalDashboard({ user }: LegalDashboardProps) {
+export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [appointments, setAppointments] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -770,9 +771,9 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
                           <UserCheck className="w-4 h-4 text-amber-600" />
                           <span className="text-xs font-bold text-navy">Update Client Milestones</span>
                         </button>
-                        <button onClick={() => setActiveTab('settings')} className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-100 hover:border-gray-300 transition-colors text-left">
-                          <Settings className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs font-bold text-navy">My Profile Settings</span>
+                        <button onClick={() => onNavigate?.('profile')} className="w-full flex items-center gap-3 p-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 hover:border-gray-300 dark:hover:border-slate-600 transition-colors text-left">
+                          <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                          <span className="text-xs font-bold text-navy dark:text-white">My Profile Settings</span>
                         </button>
                       </div>
                     )}

@@ -129,7 +129,7 @@ export default function Portal() {
           );
         }
         if (currentUser.appRole === 'Staff') {
-          return <LegalDashboard user={currentUser} />;
+          return <LegalDashboard user={currentUser} onNavigate={navigate} />;
         }
         return <Forbidden onReturnHome={() => navigate('home')} />;
       case 'legal-research':
@@ -151,11 +151,11 @@ export default function Portal() {
         ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'staff-portal':
         return currentUser?.appRole === 'Staff' ? (
-          <LegalDashboard user={currentUser} />
+          <LegalDashboard user={currentUser} onNavigate={navigate} />
         ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'admin-dashboard':
         return currentUser?.appRole === 'Admin' ? (
-          <LegalDashboard user={currentUser} />
+          <LegalDashboard user={currentUser} onNavigate={navigate} />
         ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'profile':
         return currentUser ? (
