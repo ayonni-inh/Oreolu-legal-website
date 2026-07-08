@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-navy: #002147;
   --color-navy-light: #003366;
@@ -8,6 +10,19 @@
   --color-gold-hover: #D4AF6A;
   --font-sans: 'Calibri', Calibri, 'Gill Sans MT', 'Gill Sans', Arial, sans-serif;
   --font-serif: 'Calibri', Calibri, 'Gill Sans MT', 'Gill Sans', Arial, sans-serif;
+}
+
+html {
+  font-size: 16px;
+}
+
+html.font-scale-sm { font-size: 14px; }
+html.font-scale-base { font-size: 16px; }
+html.font-scale-lg { font-size: 18px; }
+html.font-scale-xl { font-size: 20px; }
+
+html.dark {
+  color-scheme: dark;
 }
 
 * {

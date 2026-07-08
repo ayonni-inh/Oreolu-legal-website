@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Calendar, 
-  FileText, 
-  CheckCircle2, 
-  Clock, 
-  Search, 
-  MoreVertical, 
+import {
+  Users,
+  Calendar,
+  FileText,
+  CheckCircle2,
+  Clock,
+  Search,
+  MoreVertical,
   ArrowUpRight,
   TrendingUp,
   Shield,
@@ -17,7 +17,6 @@ import {
   AlertCircle,
   ChevronRight,
   UserCheck,
-  Settings,
   Mail,
   User,
   History,
@@ -25,8 +24,24 @@ import {
   Lock,
   Eye,
   Trash2,
-  XCircle
+  XCircle,
+  BarChart3,
+  X
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
 interface LegalDashboardProps {
   user: any;
@@ -61,6 +76,7 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
     lastName: user.lastName || '',
     email: user.email || ''
   });
+  const [selectedStat, setSelectedStat] = useState<string | null>('overview');
 
   useEffect(() => {
     fetchData();
@@ -417,40 +433,173 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Interactive Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           {(user.appRole === 'Admin' ? [
-            { label: 'Active Clients', value: stats.activeClients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Awaiting Approval', value: stats.pendingVerifications + stats.pendingDocs, icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', urgent: true },
-            { label: 'Audit Log Entries', value: systemLogs.length, icon: History, color: 'text-rose-600', bg: 'bg-rose-50' },
-            { label: 'Total Docs', value: documents.length, icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { id: 'activeClients', label: 'Active Clients', value: allUsers.filter((u: any) => u.appRole === 'Client' && u.status === 'ACTIVE').length || stats.activeClients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-900/20', chartColor: '#2563EB' },
+            { id: 'awaiting', label: 'Awaiting Approval', value: stats.pendingVerifications + stats.pendingDocs, icon: Shield, color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20', urgent: true, chartColor: '#D97706' },
+            { id: 'audit', label: 'Audit Log Entries', value: systemLogs.length, icon: History, color: 'text-rose-600', bg: 'bg-rose-50', darkBg: 'dark:bg-rose-900/20', chartColor: '#E11D48' },
+            { id: 'docs', label: 'Total Docs', value: documents.length, icon: FileText, color: 'text-emerald-600', bg: 'bg-emerald-50', darkBg: 'dark:bg-emerald-900/20', chartColor: '#059669' },
           ] : [
-            { label: 'Pending Appointments', value: stats.pendingVerifications, icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50', urgent: true },
-            { label: 'Documents to Review', value: stats.pendingDocs, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Total Docs on File', value: documents.length, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'All Appointments', value: appointments.length, icon: Briefcase, color: 'text-navy', bg: 'bg-navy/5' },
-          ]).map((stat, i) => (
-            <div key={i} className={`bg-white p-6 rounded-2xl shadow-sm border transition-all ${stat.urgent && stat.value > 0 ? 'border-amber-200 ring-2 ring-amber-500/10' : 'border-gray-100'} flex items-center gap-4`}>
-              <div className={`w-12 h-12 ${stat.bg} ${stat.color} rounded-xl flex items-center justify-center`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
-                <div className="flex items-end gap-2">
-                  <span className="text-2xl font-bold text-navy">{stat.value}</span>
-                  {stat.urgent && stat.value > 0 && (
-                    <span className="text-[10px] text-amber-500 font-bold mb-1 flex items-center px-1.5 py-0.5 bg-amber-50 rounded animate-pulse">
-                      ACTION REQUIRED
-                    </span>
-                  )}
+            { id: 'pendingAppts', label: 'Pending Appointments', value: stats.pendingVerifications, icon: Calendar, color: 'text-amber-600', bg: 'bg-amber-50', darkBg: 'dark:bg-amber-900/20', urgent: true, chartColor: '#D97706' },
+            { id: 'docsReview', label: 'Documents to Review', value: stats.pendingDocs, icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50', darkBg: 'dark:bg-blue-900/20', chartColor: '#2563EB' },
+            { id: 'totalDocs', label: 'Total Docs on File', value: documents.length, icon: Shield, color: 'text-emerald-600', bg: 'bg-emerald-50', darkBg: 'dark:bg-emerald-900/20', chartColor: '#059669' },
+            { id: 'allAppts', label: 'All Appointments', value: appointments.length, icon: Briefcase, color: 'text-navy', bg: 'bg-navy/5', darkBg: 'dark:bg-slate-800', chartColor: '#002147' },
+          ]).map((stat) => (
+            <button
+              key={stat.id}
+              onClick={() => setSelectedStat(selectedStat === stat.id ? 'overview' : stat.id)}
+              className={`text-left bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border transition-all hover:shadow-md ${stat.urgent && stat.value > 0 ? 'border-amber-200 dark:border-amber-800 ring-2 ring-amber-500/10' : 'border-gray-100 dark:border-slate-800'} ${selectedStat === stat.id ? 'ring-2 ring-navy/20 dark:ring-gold/30' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 ${stat.bg} ${stat.darkBg} ${stat.color} rounded-xl flex items-center justify-center`}>
+                  <stat.icon className="w-5 h-5" />
                 </div>
+                <BarChart3 className={`w-4 h-4 transition-colors ${selectedStat === stat.id ? 'text-navy dark:text-gold' : 'text-gray-300 dark:text-slate-600'}`} />
               </div>
-            </div>
+              <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-bold text-navy dark:text-white">{stat.value}</span>
+                {stat.urgent && stat.value > 0 && (
+                  <span className="text-[10px] text-amber-500 font-bold mb-1 flex items-center px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 rounded animate-pulse">
+                    ACTION
+                  </span>
+                )}
+              </div>
+            </button>
           ))}
         </div>
 
+        {/* Interactive Chart Panel */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 mb-8 transition-colors">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-bold text-navy dark:text-white flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-gold" />
+                {selectedStat === 'activeClients' && 'Active Client Breakdown'}
+                {selectedStat === 'awaiting' && 'Items Awaiting Approval'}
+                {selectedStat === 'audit' && 'Audit Activity by Action Type'}
+                {selectedStat === 'docs' && 'Document Status Distribution'}
+                {selectedStat === 'pendingAppts' && 'Pending Appointments'}
+                {selectedStat === 'docsReview' && 'Documents to Review'}
+                {selectedStat === 'totalDocs' && 'Document Status Distribution'}
+                {selectedStat === 'allAppts' && 'Appointment Status Distribution'}
+                {selectedStat === 'overview' && 'Upcoming Deadlines & Urgent Tasks'}
+              </h3>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Click any stat card above to switch infographic. Click again to return to this overview.</p>
+            </div>
+            {selectedStat !== 'overview' && (
+              <button onClick={() => setSelectedStat('overview')} className="text-xs font-bold text-gray-400 hover:text-navy dark:hover:text-gold flex items-center gap-1">
+                <X className="w-3 h-3" /> Close
+              </button>
+            )}
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              {selectedStat === 'activeClients' ? (
+                <BarChart data={[
+                  { name: 'Active', count: allUsers.filter((u: any) => u.appRole === 'Client' && u.status === 'ACTIVE').length },
+                  { name: 'Pending', count: allUsers.filter((u: any) => u.appRole === 'Client' && u.status === 'PENDING').length },
+                  { name: 'Blocked', count: allUsers.filter((u: any) => u.appRole === 'Client' && u.status === 'BLOCKED').length },
+                ]}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip />
+                  <Bar dataKey="count" fill="#2563EB" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              ) : selectedStat === 'awaiting' ? (
+                <PieChart>
+                  <Pie data={[
+                    { name: 'Pending Appointments', value: stats.pendingVerifications },
+                    { name: 'Pending Documents', value: stats.pendingDocs },
+                    { name: 'Approved / Cleared', value: Math.max(0, appointments.filter((a: any) => a.status === 'APPROVED').length + documents.filter((d: any) => d.status === 'APPROVED').length) },
+                  ]} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {[0, 1, 2].map((i) => (
+                      <Cell key={i} fill={['#D97706', '#2563EB', '#059669'][i]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              ) : selectedStat === 'audit' ? (
+                <BarChart data={Object.entries(systemLogs.reduce((acc: any, log: any) => {
+                  const key = log.action || 'OTHER';
+                  acc[key] = (acc[key] || 0) + 1;
+                  return acc;
+                }, {})).map(([name, count]) => ({ name, count }))}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <RechartsTooltip />
+                  <Bar dataKey="count" fill="#E11D48" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              ) : selectedStat === 'docs' || selectedStat === 'totalDocs' ? (
+                <PieChart>
+                  <Pie data={Object.entries(documents.reduce((acc: any, doc: any) => {
+                    const key = doc.status || 'UNKNOWN';
+                    acc[key] = (acc[key] || 0) + 1;
+                    return acc;
+                  }, {})).map(([name, value]) => ({ name, value }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {Object.keys(documents.reduce((acc: any, doc: any) => ({ ...acc, [doc.status || 'UNKNOWN']: true }), {})).map((_, i) => (
+                      <Cell key={i} fill={['#059669', '#D97706', '#2563EB', '#E11D48', '#6B7280'][i % 5]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              ) : selectedStat === 'allAppts' ? (
+                <PieChart>
+                  <Pie data={Object.entries(appointments.reduce((acc: any, appt: any) => {
+                    const key = appt.status || 'UNKNOWN';
+                    acc[key] = (acc[key] || 0) + 1;
+                    return acc;
+                  }, {})).map(([name, value]) => ({ name, value }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {Object.keys(appointments.reduce((acc: any, appt: any) => ({ ...acc, [appt.status || 'UNKNOWN']: true }), {})).map((_, i) => (
+                      <Cell key={i} fill={['#2563EB', '#D97706', '#059669', '#E11D48', '#6B7280'][i % 5]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                </PieChart>
+              ) : (
+                <BarChart data={appointments
+                  .filter((a: any) => a.appointment_date && a.status !== 'CANCELLED' && a.status !== 'COMPLETED')
+                  .sort((a: any, b: any) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+                  .slice(0, 7)
+                  .map((a: any) => ({
+                    name: a.appointment_date?.slice(5) || 'TBD',
+                    urgent: a.status === 'PENDING_ADMIN_APPROVAL' || a.status === 'PENDING_VERIFICATION' ? 1 : 0,
+                    upcoming: a.status === 'APPROVED' || a.status === 'Upcoming' ? 1 : 0,
+                    label: a.service_title
+                  }))}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                  <YAxis hide />
+                  <RechartsTooltip />
+                  <Bar dataKey="urgent" stackId="a" fill="#D97706" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="upcoming" stackId="a" fill="#059669" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+          {selectedStat === 'overview' && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-amber-600" />
+                <span className="text-gray-500 dark:text-gray-400">Needs approval / verification</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-emerald-600" />
+                <span className="text-gray-500 dark:text-gray-400">Approved / upcoming</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded bg-gray-200 dark:bg-slate-700" />
+                <span className="text-gray-500 dark:text-gray-400">Closest deadlines first</span>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Tab Navigation */}
-        <div className="flex flex-wrap items-center gap-1 bg-white p-1 rounded-2xl border border-gray-200 mb-8 w-fit shadow-sm">
+        <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-2xl border border-gray-200 dark:border-slate-800 mb-8 w-fit shadow-sm transition-colors">
           {[
             { id: 'overview', label: 'Overview', icon: Briefcase },
             { id: 'appointments', label: user.appRole === 'Admin' ? 'Appointments & Verification' : 'My Appointments Queue', icon: Calendar },
@@ -459,7 +608,6 @@ export default function LegalDashboard({ user }: LegalDashboardProps) {
             { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
             { id: 'financial', label: 'Financial Oversight', icon: CreditCard, adminOnly: true },
             { id: 'audit', label: 'System Audit Logs', icon: History, adminOnly: true },
-            { id: 'settings', label: 'My Settings', icon: Settings },
           ].filter(t => {
             if (t.adminOnly && user.appRole !== 'Admin') return false;
             return true;

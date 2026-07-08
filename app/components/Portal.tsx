@@ -22,6 +22,7 @@ const ContactUs = dynamic(() => import('@/src/components/ContactUs'));
 const LegalDashboard = dynamic(() => import('@/src/components/LegalDashboard'));
 const AdminAIPanel = dynamic(() => import('@/src/components/AdminAIPanel'));
 const ClientDashboard = dynamic(() => import('@/src/components/ClientDashboard'));
+const ProfilePage = dynamic(() => import('@/src/components/ProfilePage'));
 const TermsOfService = dynamic(() => import('@/src/components/TermsOfService'));
 const PrivacyPolicy = dynamic(() => import('@/src/components/PrivacyPolicy'));
 const Blog = dynamic(() => import('@/src/components/Blog'));
@@ -156,6 +157,10 @@ export default function Portal() {
         return currentUser?.appRole === 'Admin' ? (
           <LegalDashboard user={currentUser} />
         ) : <Forbidden onReturnHome={() => navigate('home')} />;
+      case 'profile':
+        return currentUser ? (
+          <ProfilePage user={currentUser} onNavigate={navigate} onUpdateUser={(data) => setCurrentUser((prev: any) => ({ ...prev, ...data }))} />
+        ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'home':
       default:
         return (
@@ -203,7 +208,7 @@ export default function Portal() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-white dark:bg-slate-950 font-sans text-gray-900 dark:text-gray-100 transition-colors">
       <Header 
         isLoggedIn={isLoggedIn}
         user={currentUser}

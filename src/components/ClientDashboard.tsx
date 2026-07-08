@@ -579,7 +579,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
 
             {/* Quick Actions Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <button 
+              <button
                 onClick={() => onBookService?.({ id: 'consultation', title: 'Legal Consultation', price: '$250', duration: '1 Hour' })}
                 className="md:col-span-2 bg-navy text-white p-6 rounded-2xl flex flex-col justify-between hover:bg-navy-light transition-all group relative overflow-hidden"
               >
@@ -598,23 +598,23 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={() => setActiveTab('repository')}
-                className="bg-white border border-gray-200 p-6 rounded-2xl flex flex-col justify-between hover:border-gold transition-all group"
+                className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 p-6 rounded-2xl flex flex-col justify-between hover:border-gold transition-all group"
               >
                 <div>
                   <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center mb-4">
                     <Upload className="w-5 h-5 text-gold" />
                   </div>
-                  <h3 className="text-lg font-bold text-navy mb-1">Upload Docs</h3>
-                  <p className="text-gray-500 text-xs">Securely send new files to your legal team.</p>
+                  <h3 className="text-lg font-bold text-navy dark:text-white mb-1">Upload Docs</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Securely send new files to your legal team.</p>
                 </div>
-                <div className="mt-4 text-navy font-bold text-xs uppercase tracking-wider group-hover:text-gold transition-colors">
+                <div className="mt-4 text-navy dark:text-gold font-bold text-xs uppercase tracking-wider group-hover:text-gold transition-colors">
                   Quick Upload
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={() => setIsFeedbackOpen(true)}
                 className="bg-gold/5 border border-gold/20 p-6 rounded-2xl flex flex-col justify-between hover:bg-gold/10 transition-all group"
               >
@@ -622,13 +622,59 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
                   <div className="w-10 h-10 bg-gold/20 rounded-lg flex items-center justify-center mb-4">
                     <MessageSquare className="w-5 h-5 text-gold" />
                   </div>
-                  <h3 className="text-lg font-bold text-navy mb-1">Feedback</h3>
-                  <p className="text-gray-500 text-xs">Help us improve your experience.</p>
+                  <h3 className="text-lg font-bold text-navy dark:text-white mb-1">Feedback</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs">Help us improve your experience.</p>
                 </div>
                 <div className="mt-4 text-gold font-bold text-xs uppercase tracking-wider">
                   Rate Portal
                 </div>
               </button>
+            </div>
+
+            {/* Urgent Deadlines Infographic */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 p-6 mb-8 transition-colors">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-navy dark:text-white flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-amber-500" />
+                    Upcoming Deadlines & Urgent Tasks
+                  </h3>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Your next 7 appointments and deadlines sorted by date.</p>
+                </div>
+                <button onClick={() => setActiveTab('appointments')} className="text-xs font-bold text-navy dark:text-gold hover:underline">
+                  View All →
+                </button>
+              </div>
+              <div className="h-56 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={appointments
+                    .filter((a: any) => a.appointment_date && a.status !== 'CANCELLED' && a.status !== 'COMPLETED')
+                    .sort((a: any, b: any) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime())
+                    .slice(0, 7)
+                    .map((a: any) => ({
+                      name: a.appointment_date?.slice(5) || 'TBD',
+                      pending: a.status === 'Pending' || a.status === 'PENDING_ADMIN_APPROVAL' || a.status === 'PENDING_VERIFICATION' ? 1 : 0,
+                      confirmed: a.status === 'APPROVED' || a.status === 'Upcoming' ? 1 : 0,
+                    }))}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+                    <YAxis hide />
+                    <RechartsTooltip />
+                    <Bar dataKey="pending" stackId="a" fill="#D97706" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="confirmed" stackId="a" fill="#059669" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-4 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-amber-600" />
+                  <span className="text-gray-500 dark:text-gray-400">Pending confirmation</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded bg-emerald-600" />
+                  <span className="text-gray-500 dark:text-gray-400">Confirmed</span>
+                </div>
+              </div>
             </div>
 
             {/* Personalized Recommendations */}
@@ -1695,7 +1741,7 @@ export default function ClientDashboard({ user, onUpdateUser, onBookService, ref
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 pb-20 transition-colors">
 
       {/* Action toast */}
       {aptActionMsg && (

@@ -1,5 +1,5 @@
-import { Menu, X, User, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { Menu, X, User, ChevronRight, LogOut, Settings, LayoutDashboard } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -13,6 +13,20 @@ interface HeaderProps {
 
 export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick, onLogoutClick, onNavigate, currentPage }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    if (isProfileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileOpen]);
 
   const navItems = [
     { id: 'home', label: 'Home', roles: ['All'] },
@@ -79,10 +93,12 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-3 shrink-0">
             {isLoggedIn ? (
-              <>
+              <div className="relative" ref={profileRef}>
                 <button
-                  onClick={() => onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
-                  className="flex items-center gap-2 text-sm font-semibold text-navy hover:text-gold transition-colors rounded-lg px-2 py-1 outline-none"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 text-sm font-semibold text-navy hover:text-gold transition-colors rounded-lg px-2 py-1 outline-none focus-visible:ring-2 focus-visible:ring-gold"
+                  aria-expanded={isProfileOpen}
+                  aria-haspopup="true"
                 >
                   <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white overflow-hidden shadow-sm border-2 border-gold/30">
                     {user?.avatar ? (
@@ -93,13 +109,42 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
                   </div>
                   <span className="text-sm text-navy font-medium hidden lg:block">{user?.firstName}</span>
                 </button>
-                <button
-                  onClick={onLogoutClick}
-                  className="text-sm font-semibold text-gray-500 hover:text-navy px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
-                >
-                  Logout
-                </button>
-              </>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-gray-100 dark:border-slate-800 py-2 z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-800">
+                      <p className="text-sm font-bold text-navy dark:text-white">{user?.firstName} {user?.lastName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                    </div>
+                    <button
+                      onClick={() => { onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard'); setIsProfileOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <LayoutDashboard className="w-4 h-4" /> Dashboard
+                    </button>
+                    <button
+                      onClick={() => { onNavigate('profile'); setIsProfileOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <User className="w-4 h-4" /> Profile
+                    </button>
+                    <button
+                      onClick={() => { onNavigate('profile?tab=preferences'); setIsProfileOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <Settings className="w-4 h-4" /> Settings & Preferences
+                    </button>
+                    <div className="border-t border-gray-100 dark:border-slate-800 mt-1 pt-1">
+                      <button
+                        onClick={() => { onLogoutClick?.(); setIsProfileOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
+                      >
+                        <LogOut className="w-4 h-4" /> Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <button
@@ -122,8 +167,9 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
           <div className="md:hidden flex items-center gap-2">
             {isLoggedIn ? (
               <button
-                onClick={() => onNavigate(user?.appRole === 'Admin' ? 'admin-dashboard' : user?.appRole === 'Staff' ? 'staff-portal' : 'dashboard')}
+                onClick={() => onNavigate('profile')}
                 className="w-8 h-8 rounded-full bg-navy flex items-center justify-center text-white border-2 border-gold/30"
+                aria-label="Profile"
               >
                 <span className="text-xs font-bold">{user?.firstName?.[0]}{user?.lastName?.[0]}</span>
               </button>
@@ -207,6 +253,18 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
                   className="w-full bg-gold text-white font-bold py-3.5 rounded-xl text-sm"
                 >
                   Go to Dashboard
+                </button>
+                <button
+                  onClick={() => { onNavigate('profile'); setIsMobileMenuOpen(false); }}
+                  className="w-full bg-white/10 text-white font-semibold py-3.5 rounded-xl text-sm"
+                >
+                  Profile
+                </button>
+                <button
+                  onClick={() => { onNavigate('profile?tab=preferences'); setIsMobileMenuOpen(false); }}
+                  className="w-full bg-white/10 text-white font-semibold py-3.5 rounded-xl text-sm"
+                >
+                  Settings & Preferences
                 </button>
                 <button
                   onClick={() => { onLogoutClick?.(); setIsMobileMenuOpen(false); }}
