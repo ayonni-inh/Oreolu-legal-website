@@ -22,3 +22,6 @@ Next.js 15 full-stack app. The frontend is a React + Tailwind CSS 4 SPA bridged 
 - `src/components/` — existing React components consumed by `Portal`.
 - `next.config.ts` — Next.js configuration.
 - `tsconfig.json` / `postcss.config.mjs` — TypeScript and Tailwind v4 PostCSS setup.
+
+## User preferences
+- All code changes must use Next.js patterns and conventions (App Router, Route Handlers, Server/Client components, etc.). Do not introduce Express, standalone Node HTTP servers, or non-Next.js routing.

@@ -25,7 +25,8 @@
     "zod-validation-error": "^5.0.0"
   },
   "engines": {
-    "node": "20.x"
+    "node": ">=20",
+    "npm": "10.8.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",
