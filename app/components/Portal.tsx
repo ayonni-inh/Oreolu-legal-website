@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Header from '@/src/components/Header';
@@ -137,7 +138,7 @@ export default function Portal() {
 
   const handleLogin = (userData?: any) => {
     if (userData && userData.firstName) {
-      setCurrentUser(userData);
+      flushSync(() => setCurrentUser(userData));
     } else {
       const demoUser = {
         firstName: 'Demo',
@@ -147,23 +148,19 @@ export default function Portal() {
         email: 'demo@example.com',
         appRole: 'Client'
       };
-      setCurrentUser(demoUser);
+      flushSync(() => setCurrentUser(demoUser));
       userData = demoUser;
     }
-    setIsLoggedIn(true);
+    flushSync(() => setIsLoggedIn(true));
 
-    // Defer navigation so React can flush the currentUser state update first.
-    // Without this, the role check in renderPage runs while currentUser is still null.
-    setTimeout(() => {
-      if (!pendingService) {
-        if (userData?.appRole === 'Admin') navigate('admin-dashboard');
-        else if (userData?.appRole === 'Staff') navigate('staff-portal');
-        else navigate('dashboard');
-      } else {
-        setSelectedService(pendingService);
-        setPendingService(null);
-      }
-    }, 0);
+    if (!pendingService) {
+      if (userData?.appRole === 'Admin') navigate('admin-dashboard');
+      else if (userData?.appRole === 'Staff') navigate('staff-portal');
+      else navigate('dashboard');
+    } else {
+      setSelectedService(pendingService);
+      setPendingService(null);
+    }
   };
 
   const handleLogout = () => {
