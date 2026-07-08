@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ use
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   const { userId } = await params;
   const body = await req.json();

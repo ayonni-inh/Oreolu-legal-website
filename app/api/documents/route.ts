@@ -4,7 +4,7 @@ import { addLog, fallbackDocuments, getSupabaseClient, requireRole } from '@/lib
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId') || '';
-    const auth = requireRole(req, ['Admin', 'Staff']);
+    const auth = await requireRole(req, ['Admin', 'Staff']);
     const isPrivileged = auth.allowed;
     const supabase = getSupabaseClient();
 
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = requireRole(req, ['Admin', 'Staff', 'Client']);
+    const auth = await requireRole(req, ['Admin', 'Staff', 'Client']);
     if (!auth.allowed) return auth.response;
     const { name, userId, size, type, uploaderName } = await req.json();
     const role = auth.session.role;

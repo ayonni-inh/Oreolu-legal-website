@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cases, caseTimelines, caseNotes, recordActivity, requireRole } from '@/lib/server/shared';
 
 export async function GET(req: NextRequest) {
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   return NextResponse.json(cases);
 }
 
 export async function POST(req: NextRequest) {
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   const body = await req.json();
   const { title, clientId, clientName, category, priority, adminName } = body;

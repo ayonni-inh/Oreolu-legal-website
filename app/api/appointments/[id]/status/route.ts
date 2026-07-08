@@ -11,7 +11,7 @@ import {
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = requireRole(req, ['Admin', 'Staff']);
+    const auth = await requireRole(req, ['Admin', 'Staff']);
     if (!auth.allowed) return auth.response;
     const { status, adminName, notifyClient } = await req.json();
     addLog('APPOINTMENT_STATUS_UPDATE', adminName || auth.session.id, `Changed appointment ${id} status to ${status}`);

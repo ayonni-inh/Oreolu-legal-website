@@ -3,7 +3,7 @@ import { fallbackAppointments, getSupabaseClient, requireRole } from '@/lib/serv
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = requireRole(req, ['Admin', 'Staff', 'Client']);
+    const auth = await requireRole(req, ['Admin', 'Staff', 'Client']);
     if (!auth.allowed) return auth.response;
     const { id } = await params;
     const supabase = getSupabaseClient();

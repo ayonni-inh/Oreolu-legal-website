@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addLog, fallbackUsers, requireRole } from '@/lib/server/shared';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   const isAdmin = auth.session.role === 'Admin';
   const { id } = await params;

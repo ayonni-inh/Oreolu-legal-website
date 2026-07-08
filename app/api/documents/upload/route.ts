@@ -3,7 +3,7 @@ import { addLog, fallbackDocuments, getStaffEmails, getSupabaseClient, recordAct
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = requireRole(req, ['Admin', 'Staff', 'Client']);
+    const auth = await requireRole(req, ['Admin', 'Staff', 'Client']);
     if (!auth.allowed) return auth.response;
     const form = await req.formData();
     const file = form.get('file') as File | null;

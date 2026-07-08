@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { activityLog, recordActivity, requireRole } from '@/lib/server/shared';
 
 export async function GET(req: NextRequest) {
-  const auth = requireRole(req, ['Admin']);
+  const auth = await requireRole(req, ['Admin']);
   if (!auth.allowed) return auth.response;
   const limit = Number(req.nextUrl.searchParams.get('limit')) || 100;
   return NextResponse.json(activityLog.slice(0, limit));

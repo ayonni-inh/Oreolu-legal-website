@@ -4,7 +4,7 @@ import { addLog, fallbackDocuments, getSupabaseClient, requireRole } from '@/lib
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = requireRole(req, ['Admin']);
+    const auth = await requireRole(req, ['Admin']);
     if (!auth.allowed) return auth.response;
     const { status, adminName } = await req.json();
 

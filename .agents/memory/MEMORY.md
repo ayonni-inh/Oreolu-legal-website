@@ -3,3 +3,7 @@
 - [Client ID & email flow](client-id-email-flow.md) — OGA-YYYY-NNNNN format IDs (generateClientId helper); self-registration always Client role; welcome email sent server-side; sendEmail() helper gracefully no-ops if RESEND_API_KEY absent
 - [Appointment notifications](appointment-notifications.md) — POST /api/appointments notifies all admin+staff emails; PATCH /api/appointments/:id/status sends client confirmation email when approved (notifyClient:true); DELETE /api/appointments/:id for cancellation
 - [Secrets & env vars configured](secrets-configured.md) — GEMINI_API_KEY, RESEND_API_KEY, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY saved as Replit Secrets; SUPABASE_URL and SUPABASE_JWKS_URL saved as shared env vars
+- [Session restoration on reload](session-restore-on-reload.md) — Portal restores currentUser from /api/auth/me on mount so logins survive reloads and the Forbidden page's Return Home no longer logs users out
+- [Forbidden page navigation](forbidden-navigation.md) — Return Home buttons should use the app's client-side navigate helper, not window.location.href, to preserve session state and avoid full reloads
+- [Auth guard with live status](auth-guard-live-status.md) — requireRole must be async and re-verify the user's current status and role from the DB/fallback on every protected request; stale cookies for BLOCKED/PENDING users are cleared
+- [Dev login guardrails](dev-login-guardrails.md) — development bypass endpoints must require a configured secret in production and must not substitute fallback credentials for existing DB accounts

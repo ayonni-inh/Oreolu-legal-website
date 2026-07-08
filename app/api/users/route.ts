@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fallbackUsers, getSupabaseClient, requireRole } from '@/lib/server/shared';
 
 export async function GET(req: NextRequest) {
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   const supabase = getSupabaseClient();
   if (supabase) {

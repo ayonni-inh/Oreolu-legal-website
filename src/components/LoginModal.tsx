@@ -112,7 +112,10 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
   return (
     <div 
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onClick={(e) => {
+        // Prevent the modal from closing when clicking the backdrop while the user is in the middle of typing.
+        if (e.target === e.currentTarget && !email && !password) onClose();
+      }}
     >
       <div 
         ref={modalRef}

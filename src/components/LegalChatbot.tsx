@@ -112,7 +112,7 @@ export default function LegalChatbot() {
           id="legal-chatbot-window"
           role="dialog"
           aria-label="Legal AI Assistant Chat"
-          className="fixed bottom-24 right-6 w-[90vw] md:w-[400px] h-[600px] max-h-[70vh] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-4 duration-300"
+          className="fixed bottom-24 right-6 w-[90vw] md:w-[400px] h-[70vh] md:h-[600px] max-h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-4 duration-300"
         >
           {/* Header */}
           <div className="bg-navy p-4 text-white flex items-center justify-between">
@@ -147,27 +147,34 @@ export default function LegalChatbot() {
 
           {/* Messages Area */}
           <div 
-            className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50"
+            className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-gray-50/50"
             aria-live="polite"
             aria-relevant="additions"
           >
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                <div className={`flex gap-2 max-w-[90%] md:max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
                     msg.role === 'user' ? 'bg-gold text-white' : 'bg-navy text-white'
                   }`}>
                     {msg.role === 'user' ? <User className="w-4 h-4" aria-hidden="true" /> : <Bot className="w-4 h-4" aria-hidden="true" />}
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm shadow-sm ${
+                  <div className={`p-3 rounded-2xl text-sm shadow-sm overflow-hidden break-words ${
                     msg.role === 'user' 
-                      ? 'bg-gold text-white rounded-tr-none' 
+                      ? 'bg-navy text-white rounded-tr-none' 
                       : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                   }`}>
-                    <div className="prose prose-sm max-w-none prose-p:leading-relaxed prose-p:my-1 prose-headings:text-navy prose-a:text-gold">
-                      <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <div className="prose prose-sm max-w-none leading-relaxed text-inherit [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0.5 [&_h1]:my-1 [&_h2]:my-1 [&_h3]:my-1 [&_pre]:my-1 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words [&>*]:text-inherit">
+                      <ReactMarkdown
+                        components={{
+                          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" className="underline" />,
+                          p: ({ node, ...props }) => <p {...props} className="mb-1 last:mb-0" />
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
                     </div>
-                    <p className={`text-[9px] mt-1 opacity-50 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                    <p className={`text-[9px] mt-1 opacity-60 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
                       <span className="sr-only">Sent at </span>
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -177,7 +184,7 @@ export default function LegalChatbot() {
             ))}
             {isLoading && (
               <div className="flex justify-start" aria-busy="true">
-                <div className="flex gap-2 max-w-[85%]">
+                <div className="flex gap-2 max-w-[90%] md:max-w-[85%]">
                   <div className="w-8 h-8 rounded-lg bg-navy text-white flex items-center justify-center shrink-0 shadow-sm">
                     <Bot className="w-4 h-4" aria-hidden="true" />
                   </div>
@@ -192,24 +199,25 @@ export default function LegalChatbot() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 bg-white border-t border-gray-100">
+          <div className="p-4 bg-white border-t border-gray-100 shrink-0">
             <div className="relative">
               <label htmlFor="chat-input" className="sr-only">Type your message</label>
-              <input
+              <textarea
                 id="chat-input"
-                type="text"
+                rows={1}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 placeholder="Ask about Nigerian law..."
-                className="w-full border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all"
+                className="w-full border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all resize-none max-h-32"
                 disabled={isLoading}
+                style={{ minHeight: '48px' }}
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
                 aria-label="Send message"
-                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-navy outline-none ${
+                className={`absolute right-2 top-3 p-2 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-navy outline-none ${
                   input.trim() && !isLoading ? 'bg-navy text-white hover:bg-navy-light' : 'text-gray-300'
                 }`}
               >

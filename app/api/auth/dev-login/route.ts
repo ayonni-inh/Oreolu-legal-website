@@ -2,22 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   fallbackUsers,
   getSupabaseClient,
+  loadUserById,
   recordActivity,
   setSessionCookie,
   verifyPassword,
 } from '@/lib/server/shared';
 
 /**
- * Backend bypass login for admin/developer use.
+ * Development-only emergency login endpoint.
  *
- * This endpoint behaves exactly like /api/auth/login but guarantees the
- * fallback admin is usable even if Supabase is connected but the schema is
- * incomplete (e.g. missing password_hash column). It is not a passwordless
- * backdoor: it still requires the admin email and password.
+ * In production this endpoint is disabled unless a `DEV_LOGIN_SECRET` env var
+ * is configured and the caller provides it. It is intended only for local
+ * development or rare recovery scenarios where the standard login route
+ * cannot be used. It never overrides the password or status of an existing
+ * database account with fallback credentials.
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, devSecret } = await req.json();
+
+    // Production guard: disable unless a secret is configured and matches.
+    const configuredSecret = process.env.DEV_LOGIN_SECRET;
+    if (process.env.NODE_ENV === 'production') {
+      if (!configuredSecret || devSecret !== configuredSecret) {
+        return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+      }
+    }
+
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password required' },
@@ -25,7 +36,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // First, try the database as usual.
+    // Look up the database account first. If it exists, we always use the
+    // DB password and status; fallback credentials are never substituted
+    // for a real account.
     let user: any = null;
     const supabase = getSupabaseClient();
     if (supabase) {
@@ -52,15 +65,13 @@ export async function POST(req: NextRequest) {
           };
         }
       } catch {
-        // Ignore DB errors and fall back to in-memory users.
+        // Supabase unavailable — fall through to in-memory users only when
+        // there is no database record.
       }
     }
 
-    // If the DB user has no password hash (e.g. schema was incomplete when inserted),
-    // prefer the in-memory fallback user if it has a usable password hash.
-    if (!user?.passwordHash) {
-      const fallback = fallbackUsers.find((u) => u.email === email);
-      if (fallback) user = fallback;
+    if (!user) {
+      user = fallbackUsers.find((u) => u.email === email) || null;
     }
 
     if (!user) {
@@ -107,7 +118,7 @@ export async function POST(req: NextRequest) {
       category: 'AUTH',
       action: 'USER_LOGIN',
       target: user.email,
-      details: `${user.appRole} logged in via dev-login bypass`,
+      details: `${user.appRole} logged in via dev-login`,
     });
 
     const { passwordHash: _h, password_hash: _p, ...safeUser } = user;

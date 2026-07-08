@@ -26,7 +26,7 @@ const TermsOfService = dynamic(() => import('@/src/components/TermsOfService'));
 const PrivacyPolicy = dynamic(() => import('@/src/components/PrivacyPolicy'));
 const Blog = dynamic(() => import('@/src/components/Blog'));
 
-const Forbidden = () => (
+const Forbidden = ({ onReturnHome }: { onReturnHome?: () => void }) => (
   <div className="pt-40 pb-60 px-6 text-center">
     <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
       <ShieldCheck className="w-10 h-10 text-red-600" />
@@ -36,7 +36,7 @@ const Forbidden = () => (
       You do not have the necessary permissions to access this page. Please contact your administrator if you believe this is an error.
     </p>
     <button 
-      onClick={() => typeof window !== 'undefined' && (window.location.href = '/')}
+      onClick={onReturnHome}
       className="mt-8 bg-navy text-white px-8 py-3 rounded-lg font-semibold"
     >
       Return Home
@@ -55,6 +55,7 @@ export default function Portal() {
   const [currentPage, setCurrentPage] = useState('home');
   const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = useState(0);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [isRestoringSession, setIsRestoringSession] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -69,6 +70,29 @@ export default function Portal() {
     setCurrentPage(pageFromPath || 'home');
   }, [pathname]);
 
+  // Restore session from cookie on initial mount so logins survive reloads
+  // and the "Return Home" button on the Forbidden page does not log the user out.
+  useEffect(() => {
+    let cancelled = false;
+    const restore = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (!res.ok) return;
+        const { user } = await res.json();
+        if (user && !cancelled) {
+          flushSync(() => setCurrentUser(user));
+          flushSync(() => setIsLoggedIn(true));
+        }
+      } catch {
+        // Ignore — user will see normal logged-out UI.
+      } finally {
+        if (!cancelled) setIsRestoringSession(false);
+      }
+    };
+    restore();
+    return () => { cancelled = true; };
+  }, []);
+
   const navigate = (page: string) => {
     if (page === 'home') {
       router.push('/');
@@ -81,9 +105,18 @@ export default function Portal() {
   const triggerDashboardRefresh = () => setDashboardRefreshTrigger(prev => prev + 1);
 
   const renderPage = () => {
+    if (isRestoringSession) {
+      return (
+        <div className="pt-40 pb-60 px-6 text-center">
+          <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-sm text-gray-500">Restoring your session...</p>
+        </div>
+      );
+    }
+
     switch (currentPage) {
       case 'dashboard':
-        if (!currentUser) return <Forbidden />;
+        if (!currentUser) return <Forbidden onReturnHome={() => navigate('home')} />;
         if (currentUser.appRole === 'Client') {
           return (
             <ClientDashboard
@@ -97,7 +130,7 @@ export default function Portal() {
         if (currentUser.appRole === 'Staff') {
           return <LegalDashboard user={currentUser} />;
         }
-        return <Forbidden />;
+        return <Forbidden onReturnHome={() => navigate('home')} />;
       case 'legal-research':
         return <LegalResearch />;
       case 'about-us':
@@ -114,15 +147,15 @@ export default function Portal() {
       case 'ai-center':
         return currentUser?.appRole === 'Admin' ? (
           <AdminAIPanel user={currentUser} />
-        ) : <Forbidden />;
+        ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'staff-portal':
         return currentUser?.appRole === 'Staff' ? (
           <LegalDashboard user={currentUser} />
-        ) : <Forbidden />;
+        ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'admin-dashboard':
         return currentUser?.appRole === 'Admin' ? (
           <LegalDashboard user={currentUser} />
-        ) : <Forbidden />;
+        ) : <Forbidden onReturnHome={() => navigate('home')} />;
       case 'home':
       default:
         return (

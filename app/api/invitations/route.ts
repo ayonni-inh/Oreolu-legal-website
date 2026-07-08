@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient, invitations, requireRole } from '@/lib/server/shared';
 
 export async function GET(req: NextRequest) {
-  const auth = requireRole(req, ['Admin']);
+  const auth = await requireRole(req, ['Admin']);
   if (!auth.allowed) return auth.response;
   const supabase = getSupabaseClient();
   if (supabase) {

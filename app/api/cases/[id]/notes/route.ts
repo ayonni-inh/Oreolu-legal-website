@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = requireRole(req, ['Admin', 'Staff']);
+  const auth = await requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
   const body = await req.json();
   const { author, text } = body;

@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { fallbackUsers, getBaseUrl, getSupabaseClient, invitations, lawyers, recordActivity, requireRole, sendEmail } from '@/lib/server/shared';
 
 export async function POST(req: NextRequest) {
-  const auth = requireRole(req, ['Admin']);
+  const auth = await requireRole(req, ['Admin']);
   if (!auth.allowed) return auth.response;
   const body = await req.json();
   const { firstName, lastName, email, role: inviteeRole, specialties, capacity, adminName } = body;

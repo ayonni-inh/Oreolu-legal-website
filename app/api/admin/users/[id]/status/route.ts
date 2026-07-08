@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addLog, fallbackUsers, getSupabaseClient, requireRole } from '@/lib/server/shared';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const auth = requireRole(req, ['Admin']);
+  const auth = await requireRole(req, ['Admin']);
   if (!auth.allowed) return auth.response;
   const { id } = await params;
   const { status, adminName } = await req.json();

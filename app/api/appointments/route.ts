@@ -4,7 +4,7 @@ import { addLog, fallbackAppointments, getStaffEmails, getSupabaseClient, getUse
 export async function GET(req: NextRequest) {
   try {
     const userId = req.nextUrl.searchParams.get('userId') || '';
-    const auth = requireRole(req, ['Admin', 'Staff']);
+    const auth = await requireRole(req, ['Admin', 'Staff']);
     const isPrivileged = auth.allowed;
     const supabase = getSupabaseClient();
 
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = requireRole(req, ['Admin', 'Staff', 'Client']);
+    const auth = await requireRole(req, ['Admin', 'Staff', 'Client']);
     if (!auth.allowed) return auth.response;
     const { userId, serviceTitle, date, time, price, trackingNumber, status, requesterName,
             consultationType, practiceArea, description, preferredLawyer, attachedDocCount } = await req.json();

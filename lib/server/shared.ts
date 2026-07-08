@@ -78,13 +78,47 @@ export function clearSessionCookie(response: NextResponse) {
   });
 }
 
-export function requireRole(req: NextRequest, allowed: string[]) {
+export async function loadUserById(id: string): Promise<any | null> {
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    try {
+      const { data } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (data) {
+        return {
+          id: data.id,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          email: data.email,
+          appRole: data.app_role,
+          status: data.status,
+          permissions: data.permissions || [],
+          passwordHash: data.password_hash,
+        };
+      }
+    } catch {
+      // Fall through to in-memory fallback if Supabase is unavailable or schema is incomplete.
+    }
+  }
+  return fallbackUsers.find((u) => u.id === id) || null;
+}
+
+export async function requireRole(req: NextRequest, allowed: string[]) {
   const session = readSessionCookie(req);
-  if (!session || !allowed.includes(session.role)) {
+  if (!session) {
     return {
       allowed: false as const,
       response: NextResponse.json({ error: "Access Denied" }, { status: 403 }),
     };
+  }
+  const user = await loadUserById(session.id);
+  if (!user || user.status !== "ACTIVE" || !allowed.includes(user.appRole)) {
+    const response = NextResponse.json({ error: "Access Denied" }, { status: 403 });
+    clearSessionCookie(response);
+    return { allowed: false as const, response };
   }
   return { allowed: true as const, session };
 }
