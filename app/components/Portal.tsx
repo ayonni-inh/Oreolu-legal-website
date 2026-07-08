@@ -2,26 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Header from '@/src/components/Header';
 import Hero from '@/src/components/Hero';
 import ServiceGrid from '@/src/components/ServiceGrid';
 import BookingModal from '@/src/components/BookingModal';
 import RegistrationModal from '@/src/components/RegistrationModal';
 import LoginModal from '@/src/components/LoginModal';
-import LegalResearch from '@/src/components/LegalResearch';
-import AboutUs from '@/src/components/AboutUs';
-import ContactUs from '@/src/components/ContactUs';
-import LegalDashboard from '@/src/components/LegalDashboard';
-import AdminAIPanel from '@/src/components/AdminAIPanel';
-import ClientDashboard from '@/src/components/ClientDashboard';
-import TermsOfService from '@/src/components/TermsOfService';
-import PrivacyPolicy from '@/src/components/PrivacyPolicy';
 import WelcomeTour from '@/src/components/WelcomeTour';
-import Blog from '@/src/components/Blog';
 import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import LegalChatbot from '@/src/components/LegalChatbot';
 import SetPasswordModal from '@/src/components/SetPasswordModal';
 import { ShieldCheck } from 'lucide-react';
+
+const LegalResearch = dynamic(() => import('@/src/components/LegalResearch'));
+const AboutUs = dynamic(() => import('@/src/components/AboutUs'));
+const ContactUs = dynamic(() => import('@/src/components/ContactUs'));
+const LegalDashboard = dynamic(() => import('@/src/components/LegalDashboard'));
+const AdminAIPanel = dynamic(() => import('@/src/components/AdminAIPanel'));
+const ClientDashboard = dynamic(() => import('@/src/components/ClientDashboard'));
+const TermsOfService = dynamic(() => import('@/src/components/TermsOfService'));
+const PrivacyPolicy = dynamic(() => import('@/src/components/PrivacyPolicy'));
+const Blog = dynamic(() => import('@/src/components/Blog'));
 
 const Forbidden = () => (
   <div className="pt-40 pb-60 px-6 text-center">
@@ -33,7 +35,7 @@ const Forbidden = () => (
       You do not have the necessary permissions to access this page. Please contact your administrator if you believe this is an error.
     </p>
     <button 
-      onClick={() => window.location.href = '/'}
+      onClick={() => typeof window !== 'undefined' && (window.location.href = '/')}
       className="mt-8 bg-navy text-white px-8 py-3 rounded-lg font-semibold"
     >
       Return Home

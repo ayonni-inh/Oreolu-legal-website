@@ -4,8 +4,14 @@ import { addLog, fallbackUsers, requireRole } from '@/lib/server/shared';
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = requireRole(req, ['Admin', 'Staff']);
   if (!auth.allowed) return auth.response;
+  const isAdmin = auth.session.role === 'Admin';
   const { id } = await params;
   const { firstName, lastName, email, appRole, companyName, status, adminName, permissions } = await req.json();
+
+  if (!isAdmin && (appRole || permissions)) {
+    return NextResponse.json({ error: 'Only Admin can change role or permissions' }, { status: 403 });
+  }
+
   const index = fallbackUsers.findIndex(u => u.id === id);
   if (index === -1) return NextResponse.json({ error: 'User not found' }, { status: 404 });
   const prevRole = fallbackUsers[index].appRole, prevStatus = fallbackUsers[index].status, prevPermissions = fallbackUsers[index].permissions;

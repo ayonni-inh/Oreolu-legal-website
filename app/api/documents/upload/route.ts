@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
     const file = form.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
 
-    const userId = form.get('userId') as string || auth.session.id;
-    const uploaderName = form.get('uploaderName') as string || auth.session.email || 'User';
     const role = auth.session.role;
+    const userId = (role === 'Admin' || role === 'Staff') ? (form.get('userId') as string || auth.session.id) : auth.session.id;
+    const uploaderName = form.get('uploaderName') as string || auth.session.email || 'User';
 
     const docId = `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
     const storagePath = `documents/${docId}/${file.name}`;

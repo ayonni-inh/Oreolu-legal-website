@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fallbackAppointments, getSupabaseClient } from '@/lib/server/shared';
+import { fallbackAppointments, getSupabaseClient, requireRole } from '@/lib/server/shared';
 
-export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = requireRole(req, ['Admin', 'Staff', 'Client']);
+    if (!auth.allowed) return auth.response;
     const { id } = await params;
     const supabase = getSupabaseClient();
     if (supabase) {
