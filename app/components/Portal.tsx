@@ -151,15 +151,19 @@ export default function Portal() {
       userData = demoUser;
     }
     setIsLoggedIn(true);
-    
-    if (!pendingService) {
-      if (userData?.appRole === 'Admin') navigate('admin-dashboard');
-      else if (userData?.appRole === 'Staff') navigate('staff-portal');
-      else navigate('dashboard');
-    } else {
-      setSelectedService(pendingService);
-      setPendingService(null);
-    }
+
+    // Defer navigation so React can flush the currentUser state update first.
+    // Without this, the role check in renderPage runs while currentUser is still null.
+    setTimeout(() => {
+      if (!pendingService) {
+        if (userData?.appRole === 'Admin') navigate('admin-dashboard');
+        else if (userData?.appRole === 'Staff') navigate('staff-portal');
+        else navigate('dashboard');
+      } else {
+        setSelectedService(pendingService);
+        setPendingService(null);
+      }
+    }, 0);
   };
 
   const handleLogout = () => {
