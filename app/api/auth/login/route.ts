@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     if (user.status === 'PENDING') return NextResponse.json({ error: 'PENDING', message: 'Your account is pending approval' }, { status: 403 });
     if (user.status === 'BLOCKED') return NextResponse.json({ error: 'BLOCKED', message: 'This account has been suspended' }, { status: 403 });
     const storedHash = user.passwordHash || user.password_hash;
-    if (storedHash && !verifyPassword(password, storedHash)) return NextResponse.json({ error: 'Incorrect password' }, { status: 401 });
+    if (!storedHash) return NextResponse.json({ error: 'Account has no password set. Please use the invitation link to set your password.' }, { status: 401 });
+    if (!verifyPassword(password, storedHash)) return NextResponse.json({ error: 'Incorrect password' }, { status: 401 });
     recordActivity({ actorId: user.id, actorName: `${user.firstName} ${user.lastName}`, actorRole: user.appRole, category: 'AUTH', action: 'USER_LOGIN', target: user.email, details: `${user.appRole} logged in` });
     const { passwordHash: _h, password_hash: _p, ...safeUser } = user;
     const response = NextResponse.json({ success: true, user: safeUser });
