@@ -1,6 +1,7 @@
 {
   "version": 2,
   "framework": "nextjs",
+  "nodeVersion": "22.x",
   "env": {
     "NODE_ENV": "production",
     "VERCEL": "1"
