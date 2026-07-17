@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
   .eq('email', email)
   .maybeSingle();
 
+console.log('DEBUG LOGIN:', { email, data });
+
 console.log('DEBUG LOGIN:', { email, data, error }); // ADD THIS LINE
     const storedHash = user.passwordHash || user.password_hash;
     if (!storedHash) return NextResponse.json({ error: 'Account has no password set. Please use the invitation link to set your password.' }, { status: 401 });
