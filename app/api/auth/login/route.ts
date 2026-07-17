@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'No account found with this email address' }, { status: 401 });
     if (user.status === 'PENDING') return NextResponse.json({ error: 'PENDING', message: 'Your account is pending approval' }, { status: 403 });
     if (user.status === 'BLOCKED') return NextResponse.json({ error: 'BLOCKED', message: 'This account has been suspended' }, { status: 403 });
+    const { data } = await supabase
+  .from('users')
+  .select('*')
+  .eq('email', email)
+  .maybeSingle();
+
+console.log('DEBUG LOGIN:', { email, data, error }); // ADD THIS LINE
     const storedHash = user.passwordHash || user.password_hash;
     if (!storedHash) return NextResponse.json({ error: 'Account has no password set. Please use the invitation link to set your password.' }, { status: 401 });
     if (!verifyPassword(password, storedHash)) return NextResponse.json({ error: 'Incorrect password' }, { status: 401 });
