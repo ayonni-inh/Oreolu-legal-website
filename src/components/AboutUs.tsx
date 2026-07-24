@@ -29,8 +29,8 @@ export default function AboutUs() {
   const stats = [
     { label: "Years of Experience", value: "25+" },
     { label: "Successful Cases", value: "1,500+" },
-    { label: "Expert Attorneys", value: "40+" },
-    { label: "Global Partners", value: "12" }
+    { label: "Expert Attorneys", value: "10" },
+    { label: "Global Partners", value: "2" }
   ];
 
   const team = [
@@ -150,7 +150,7 @@ export default function AboutUs() {
               <span className="text-gold font-bold uppercase tracking-widest text-sm">Founder's Profile</span>
             </div>
             <h2 className="font-serif text-4xl font-bold mb-2 leading-tight">Dr. Oroelu Godwin Agidi</h2>
-            <p className="text-gold/80 text-sm font-medium tracking-wide mb-8">BL MCBA MCArb FCILRM CFIAR</p>
+            <p className="text-gold/80 text-sm font-medium tracking-wide mb-8">BL, MCArb, CFIAR, DICRMP, HCILRM</p>
             
             <div className="space-y-6 text-gray-300 leading-relaxed font-sans">
               <p className="text-white text-lg font-medium italic border-l-4 border-gold pl-6">
@@ -325,7 +325,8 @@ export default function AboutUs() {
             ))}
           </div>
 
-          {/* Editorial Team Section */}
+          {/* Editorial Team Section - hidden at client request */}
+          {false && (
           <div className="border-t border-gray-200 pt-20">
             <div className="text-center mb-12">
               <h2 className="font-serif text-3xl md:text-4xl font-bold text-navy mb-4">Editorial Team</h2>
@@ -348,6 +349,7 @@ export default function AboutUs() {
               ))}
             </div>
           </div>
+          )}
 
           {/* Client Testimonials Section */}
           <div className="border-t border-gray-200 pt-20 mt-20">
