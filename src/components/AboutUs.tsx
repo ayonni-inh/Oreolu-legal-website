@@ -1,4 +1,4 @@
-import { Users, Award, Globe, Building2, Quote, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Award, Globe, Building2, Quote, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 const awards = [
@@ -48,24 +48,28 @@ export default function AboutUs() {
 
   const testimonials = [
     {
-      quote: "OROELU GODWIN AGIDI & CO provided exceptional guidance during our corporate restructuring. Their attention to detail and strategic foresight saved us countless hours and mitigated significant risks.",
-      name: "Sarah Jenkins",
-      title: "CEO, TechFlow Solutions"
+      quote: "Thanks a lot. We not let you down.",
+      name: "John Chibueze Nwosu",
+      title: "Local Guide · 5 stars",
+      rating: 5
     },
     {
-      quote: "The level of professionalism and dedication from the litigation team is unmatched. They handled our complex dispute with precision, securing a highly favorable outcome.",
-      name: "Marcus Thorne",
-      title: "Director, Global Logistics Inc."
+      quote: "It nice",
+      name: "peace oretayo",
+      title: "Local Guide · 2 stars",
+      rating: 2
     },
     {
-      quote: "Having OROELU GODWIN AGIDI & CO as our legal partner has been invaluable. Their prompt responses and deep understanding of intellectual property law have been crucial to our growth.",
-      name: "Elena Rodriguez",
-      title: "Founder, InnovateX"
+      quote: "A top notch service delivery that is second to none.",
+      name: "patrick ossai",
+      title: "1 review · 5 stars",
+      rating: 5
     },
     {
-      quote: "Transparent, authoritative, and incredibly effective. They don't just offer legal advice; they provide actionable business strategies backed by legal expertise.",
-      name: "David Chen",
-      title: "Managing Partner, Chen Capital"
+      quote: "This is a law firm where you can see legal luminaries with the finest minds",
+      name: "Ukablaia Sunday",
+      title: "1 review · 5 stars",
+      rating: 5
     }
   ];
 
@@ -367,18 +371,30 @@ export default function AboutUs() {
                 className="flex overflow-x-auto pb-8 -mx-6 px-6 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               >
                 {testimonials.map((testimonial, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="w-full min-w-[85vw] md:min-w-[100%] snap-center px-4"
                   >
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12 text-center relative">
                       <Quote className="w-12 h-12 text-gold/20 absolute top-6 left-6 md:top-8 md:left-8" />
-                      <p className="font-serif text-xl md:text-2xl text-navy leading-relaxed mb-8 relative z-10 italic">
+                      <p className="font-serif text-xl md:text-2xl text-navy leading-relaxed mb-6 relative z-10 italic">
                         "{testimonial.quote}"
                       </p>
+                      <div className="flex justify-center gap-1 mb-6">
+                        {Array.from({ length: 5 }).map((_, starIdx) => (
+                          <Star
+                            key={starIdx}
+                            className={`w-5 h-5 ${
+                              starIdx < (testimonial.rating || 5)
+                                ? 'fill-gold text-gold'
+                                : 'fill-gray-200 text-gray-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
                       <div className="flex flex-col items-center justify-center">
                         <div className="w-12 h-12 bg-navy rounded-full flex items-center justify-center text-white font-bold mb-4">
-                          {testimonial.name.charAt(0)}
+                          {testimonial.name.charAt(0).toUpperCase()}
                         </div>
                         <h4 className="font-bold text-navy text-lg">{testimonial.name}</h4>
                         <p className="text-gray-500 text-sm uppercase tracking-wider mt-1">{testimonial.title}</p>
