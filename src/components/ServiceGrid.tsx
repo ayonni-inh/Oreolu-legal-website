@@ -36,10 +36,15 @@ const services = [
     id: 'business-property',
     title: 'Business & Property',
     price: 'Consultation',
+    smallPrice: true,
     duration: 'From $250',
     description: 'Comprehensive legal support for your business transactions and property matters.',
     features: [
       'Bankruptcy representation',
+      'Liquidation',
+      'Winding up',
+      'Company registration',
+      'Intellectual property registration',
       'Business transactions',
       'Real estate title services',
       'Legal settlements'
@@ -130,7 +135,7 @@ export default function ServiceGrid({ onBookService }: ServiceGridProps) {
               <div className={`mb-8 pb-8 border-b ${service.highlighted ? 'border-white/10' : 'border-gray-100'}`}>
                 <div className="flex items-baseline gap-2">
                   {service.price && (
-                    <span className={`text-4xl font-bold tracking-tight ${service.highlighted ? 'text-white' : 'text-navy'}`}>
+                    <span className={`font-bold tracking-tight ${(service as any).smallPrice ? 'text-xl' : 'text-4xl'} ${service.highlighted ? 'text-white' : 'text-navy'}`}>
                       {service.price}
                     </span>
                   )}
