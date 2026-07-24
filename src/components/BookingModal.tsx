@@ -211,8 +211,11 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {/* STEP 1: Consultation Type */}
           {step === 1 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h3 className="font-serif text-xl font-bold text-navy mb-1">Choose Consultation Type</h3>
-              <p className="text-sm text-gray-500 mb-6">How would you like to meet with your attorney?</p>
+              <div className="mb-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 1</span>
+                <h3 className="font-serif text-2xl font-bold text-navy mb-2">Choose Consultation Type</h3>
+                <p className="text-sm text-gray-500">How would you like to meet with your attorney?</p>
+              </div>
               <div className="grid grid-cols-1 gap-4">
                 {CONSULTATION_TYPES.map(ct => {
                   const Icon = ct.icon;
@@ -246,8 +249,11 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {/* STEP 2: Practice Area */}
           {step === 2 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h3 className="font-serif text-xl font-bold text-navy mb-1">Choose Practice Area</h3>
-              <p className="text-sm text-gray-500 mb-6">Select the area of law that best describes your matter.</p>
+              <div className="mb-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 2</span>
+                <h3 className="font-serif text-2xl font-bold text-navy mb-2">Choose Practice Area</h3>
+                <p className="text-sm text-gray-500">Select the area of law that best describes your matter.</p>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {PRACTICE_AREAS.map(pa => {
                   const Icon = pa.icon;
@@ -274,8 +280,11 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {step === 3 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
               <div>
-                <h3 className="font-serif text-xl font-bold text-navy mb-1">Pick a Date & Time</h3>
-                <p className="text-sm text-gray-500 mb-4">Select your preferred appointment slot.</p>
+                <div className="mb-4">
+                  <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 3</span>
+                  <h3 className="font-serif text-2xl font-bold text-navy mb-2">Pick a Date & Time</h3>
+                  <p className="text-sm text-gray-500">Select your preferred appointment slot.</p>
+                </div>
 
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Available Dates</label>
                 <div className="flex gap-3 overflow-x-auto pb-3 -mx-1 px-1 snap-x">
@@ -330,8 +339,11 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {/* STEP 4: Description */}
           {step === 4 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h3 className="font-serif text-xl font-bold text-navy mb-1">Describe Your Matter</h3>
-              <p className="text-sm text-gray-500 mb-6">Give us a brief overview so your attorney can prepare effectively.</p>
+              <div className="mb-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 4</span>
+                <h3 className="font-serif text-2xl font-bold text-navy mb-2">Describe Your Matter</h3>
+                <p className="text-sm text-gray-500">Give us a brief overview so your attorney can prepare effectively.</p>
+              </div>
               <div className="relative">
                 <textarea
                   value={description}
@@ -354,9 +366,12 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {/* STEP 5: Documents */}
           {step === 5 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h3 className="font-serif text-xl font-bold text-navy mb-1">Supporting Documents</h3>
-              <p className="text-sm text-gray-500 mb-2">Upload relevant files to help your attorney understand your case. <span className="font-semibold text-gold">Optional.</span></p>
-              <p className="text-xs text-gray-400 mb-6">Accepted: PDF, Images (JPG/PNG), Word (.docx), ZIP — max 5 files</p>
+              <div className="mb-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 5</span>
+                <h3 className="font-serif text-2xl font-bold text-navy mb-2">Supporting Documents</h3>
+                <p className="text-sm text-gray-500">Upload relevant files to help your attorney understand your case. <span className="font-semibold text-gold">Optional.</span></p>
+                <p className="text-xs text-gray-400 mt-1">Accepted: PDF, Images (JPG/PNG), Word (.docx), ZIP — max 5 files</p>
+              </div>
 
               <input ref={fileInputRef} type="file" multiple className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.docx,.doc,.zip"
@@ -400,8 +415,11 @@ export default function BookingModal({ service: initialService, onClose, isLogge
           {/* STEP 6: Payment / Confirmation */}
           {step === 6 && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h3 className="font-serif text-xl font-bold text-navy mb-1">Review & Confirm</h3>
-              <p className="text-sm text-gray-500 mb-6">Please review your consultation details before submitting.</p>
+              <div className="mb-6">
+                <span className="inline-block px-3 py-1 rounded-full bg-gold/10 text-gold text-xs font-bold uppercase tracking-wider mb-3">Step 6</span>
+                <h3 className="font-serif text-2xl font-bold text-navy mb-2">Review & Confirm</h3>
+                <p className="text-sm text-gray-500">Please review your consultation details before submitting.</p>
+              </div>
 
               {/* Summary card */}
               <div className="bg-gray-50 rounded-xl p-5 mb-6 border border-gray-200 space-y-3">
