@@ -54,90 +54,82 @@ export default function ContactUs() {
           {/* Contact Information */}
           <div>
             <h2 className="font-serif text-3xl font-bold text-navy mb-8">Contact Information</h2>
-            <div className="space-y-8 mb-12">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                  <MapPin className="w-6 h-6" />
+
+            {/* Offices — side by side on larger screens */}
+            <div className="grid md:grid-cols-2 gap-5 mb-8">
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-gold" />
+                  <h3 className="font-bold text-navy text-sm uppercase tracking-wide">Headquarters</h3>
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Heritage & Grace Chambers, Suite C20/C21,<br />
+                  Cherub Mall, New Road Bus Stop,<br />
+                  KM 18 Lekki-Epe Expressway, Lekki 106104, Lagos
+                </p>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=SUITE+C20+C21+CHERUB+MALL+KM+18+Lekki+Epe+Expressway+Lekki+Lagos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
+                >
+                  Get Directions →
+                </a>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <MapPin className="w-4 h-4 text-gold" />
+                  <h3 className="font-bold text-navy text-sm uppercase tracking-wide">Ojo Office</h3>
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Suite 5/6, 2nd Floor, Plot 4,<br />
+                  Alaba Int'l Market Road, Opposite Total Station,<br />
+                  Ojo, Lagos State
+                </p>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Alaba+International+Market+Road+Ojo+Lagos"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
+                >
+                  Get Directions →
+                </a>
+              </div>
+            </div>
+
+            {/* Contact channels */}
+            <div className="grid sm:grid-cols-2 gap-5 mb-8">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
+                  <Phone className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy text-lg mb-1">Our Headquarters</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    HERITAGE & GRACE CHAMBERS,<br />
-                    SUITE C20/C21, CHERUB MALL,<br />
-                    New Road Bus Stop,<br />
-                    KM 18 Lekki - Epe Expy,<br />
-                    Lekki Penninsula II,<br />
-                    Lekki 106104, Lagos
-                  </p>
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=SUITE+C20+C21+CHERUB+MALL+KM+18+Lekki+Epe+Expressway+Lekki+Lagos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
-                  >
-                    <MapPin className="w-3.5 h-3.5" /> Get Directions →
-                  </a>
+                  <h3 className="font-bold text-navy text-sm mb-0.5">Phone</h3>
+                  <p className="text-gray-600 text-sm">+234 803 320 1909</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                  <MapPin className="w-6 h-6" />
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
+                  <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy text-lg mb-1">Ojo Office</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    Suite 5/6, 2nd Floor, Plot 4,<br />
-                    Alaba Int'l Market Road,<br />
-                    Opposite Total Station,<br />
-                    Ojo, Lagos State
-                  </p>
-                  <a
-                    href="https://www.google.com/maps/search/?api=1&query=Alaba+International+Market+Road+Ojo+Lagos"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-bold text-gold hover:underline"
-                  >
-                    <MapPin className="w-3.5 h-3.5" /> Get Directions →
-                  </a>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                  <Phone className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-navy text-lg mb-1">Phone</h3>
-                  <p className="text-gray-600">
-                    +234 803 320 1909
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                  <Mail className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-navy text-lg mb-1">Email</h3>
-                  <p className="text-gray-600">
-                    General Inquiries: ogacosolicitors@gmail.com<br />
-                    Client Support: contact@ogacosolicitors.com
+                  <h3 className="font-bold text-navy text-sm mb-0.5">Email</h3>
+                  <p className="text-gray-600 text-sm">
+                    ogacosolicitors@gmail.com<br />
+                    contact@ogacosolicitors.com
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
-                  <Clock className="w-6 h-6" />
+              <div className="flex items-start gap-3 sm:col-span-2">
+                <div className="w-10 h-10 bg-navy/5 rounded-lg flex items-center justify-center text-navy shrink-0">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy text-lg mb-1">Office Hours</h3>
-                  <p className="text-gray-600">
-                    Monday - Friday: 8:00 AM - 6:00 PM EST<br />
-                    Saturday: By Appointment Only
-                  </p>
+                  <h3 className="font-bold text-navy text-sm mb-0.5">Office Hours</h3>
+                  <p className="text-gray-600 text-sm">Monday – Friday: 8:00 AM – 6:00 PM · Saturday: By Appointment</p>
                 </div>
               </div>
             </div>
