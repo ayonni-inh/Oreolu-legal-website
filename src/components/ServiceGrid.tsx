@@ -10,6 +10,7 @@ const services = [
     id: 'litigation',
     title: 'Litigation Services',
     price: 'Retainer',
+    smallPrice: true,
     duration: 'Case-by-Case',
     description: 'Representation in Trial, Appellate Court and Tribunals.',
     features: [
@@ -28,7 +29,8 @@ const services = [
       'Criminal Cases',
       'Employment Cases',
       'Intellectual Property Cases',
-      'Blockchain/Cyber/ICT Cases'
+      'Blockchain/Cyber/ICT Cases',
+      'Due diligence investigation & advisory'
     ],
     highlighted: true
   },
@@ -53,14 +55,16 @@ const services = [
   },
   {
     id: 'advisory-personal',
-    title: 'Advisory & Personal',
+    title: 'Arbitration & Alternative Dispute Resolution',
     price: '',
     duration: 'Varies',
-    description: 'Personalized legal guidance, estate planning, and alternative dispute resolution.',
+    description: 'Expert neutral services for resolving disputes outside the courtroom efficiently and confidentially.',
     features: [
-      'Case assessments',
+      'Arbitrators',
+      'Mediators',
+      'Negotiators',
+      'Case assessment',
       'Legal advice',
-      'Mediation',
       'Power of attorney',
       'Pro bono representation',
       'Will writing'
