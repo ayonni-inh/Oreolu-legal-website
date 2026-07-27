@@ -8,7 +8,7 @@ const awards = [
   { img: '/award-geda-adviser.png', title: 'Best Legal Adviser Award', body: 'General Electric Dealers Association of Nigeria', year: '2017' },
   { img: '/award-icar-fellow.png', title: 'Fellow of the Institute', body: 'Institute of Chartered Administrators and Researchers of Nigeria', year: '2019' },
   { img: '/award-nba-life-member.png', title: 'Honorary Life Membership Award', body: 'Nigerian Bar Association — Badagry Branch (Heritage Bar)', year: '2021' },
-  { img: '/award-voice-achievers.png', title: 'The Voice Achievers Award — African Impact Award', body: 'African Impact Organisation', year: '2024' },
+  { img: '/award-voice-achievers.png', title: 'The Voice Achievers Award — African Impact Award', body: 'African Impact Organisation', year: '2025' },
   { img: '/award-cilrm-honorary.png', title: 'Honorary Fellowship Award', body: 'Chartered Institute of Loan & Risk Management of Nigeria', year: '2026' },
   { img: '/award-heritage-bar.png', title: 'Heritage Bar Personality of the Year', body: 'Nigerian Bar Association — Heritage Bar', year: '2025' },
 ];
