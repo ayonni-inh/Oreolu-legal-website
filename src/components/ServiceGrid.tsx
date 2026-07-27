@@ -33,7 +33,7 @@ const services = [
     title: 'Corporate and Commercial Services',
     badge: null,
     pricingLabel: 'Consultation',
-    pricingNote: 'From ₦250,000',
+    pricingNote: 'Fees are based on nature of case and Professional Rules 2023',
     description: 'Comprehensive legal support for your corporate and commercial matters.',
     features: [
       'Bankruptcy, Liquidation and Winding-up',
