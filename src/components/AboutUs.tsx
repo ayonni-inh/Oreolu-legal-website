@@ -157,7 +157,7 @@ export default function AboutUs() {
             
             <div className="space-y-6 text-gray-300 leading-relaxed font-sans">
               <p className="text-white text-lg font-medium italic border-l-4 border-gold pl-6">
-                "Oroelu Godwin Agidi stands as the esteemed founder and lead partner of OROELU GODWIN AGIDI & CO. This multidisciplinary firm boasts specializations across several crucial areas, including law, arbitration, alternative dispute resolution (ADR), and comprehensive loan and risk management services."
+                "Oroelu Godwin Agidi is the founder and lead partner of OROELU GODWIN AGIDI & CO. He is a multidisciplinarian with a flair for advocacy, arbitration, ADR, risk management, and regulatory compliance."
               </p>
               
               <div className="grid md:grid-cols-2 gap-8 mt-10">
