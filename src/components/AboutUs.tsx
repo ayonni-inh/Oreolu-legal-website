@@ -138,7 +138,7 @@ export default function AboutUs() {
             {/* Placeholder for Founder Photo */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-navy/20 p-8 text-center">
               <Users className="w-24 h-24 mb-4 opacity-10" />
-              <p className="font-serif text-xl font-bold opacity-30">Dr. Oroelu Godwin Agidi</p>
+              <p className="font-serif text-xl font-bold opacity-30">Oroelu Godwin Agidi</p>
               <p className="text-sm opacity-30 mt-2">Founder & Lead Partner</p>
             </div>
             {/* Award Badge Overlay */}
@@ -152,7 +152,7 @@ export default function AboutUs() {
               <div className="h-px w-12 bg-gold"></div>
               <span className="text-gold font-bold uppercase tracking-widest text-sm">Founder's Profile</span>
             </div>
-            <h2 className="font-serif text-4xl font-bold mb-2 leading-tight">Dr. Oroelu Godwin Agidi</h2>
+            <h2 className="font-serif text-4xl font-bold mb-2 leading-tight">Oroelu Godwin Agidi</h2>
             <p className="text-gold/80 text-sm font-medium tracking-wide mb-8">BL, MCArb, CFIAR, DICRMP, HCILRM</p>
             
             <div className="space-y-6 text-gray-300 leading-relaxed font-sans">
@@ -162,9 +162,9 @@ export default function AboutUs() {
               
               <div className="grid md:grid-cols-2 gap-8 mt-10">
                 <div>
-                  <h3 className="text-gold font-bold uppercase tracking-wider text-xs mb-4">Academic Excellence</h3>
+                  <h3 className="text-gold font-bold uppercase tracking-wider text-xs mb-4">Education</h3>
                   <p className="text-sm">
-                    His academic journey is extensive and impressive, beginning with his call to the Nigerian Bar in 1995. Agidi pursued advanced studies, culminating in a Master’s degree in Diplomacy and Negotiation, and ultimately, a Doctorate in both Law and Diplomacy.
+                    He graduated from Rivers State University Port Harcourt Nigeria in 1994 and obtained his professional qualification at the Nigerian Law School in Lagos in 1995 followed by his mandatory youth service in 1995 after being called to the bar in 1995. He pursued advanced studies culminating in a Master's degree in Diplomacy and Negotiation and a Doctorate in Law and Diplomacy.
                   </p>
                 </div>
                 <div>
