@@ -40,7 +40,6 @@ const services = [
       'Company registration',
       'Company secretarial services',
       'Intellectual property registration',
-      'Land documentation',
       'Will writing',
       'Administration of estate',
       'Documentation',
