@@ -115,7 +115,7 @@ export default function AboutUs() {
                OROELU GODWIN AGIDI<br/>& CO
              </h2>
              <p className="text-gray-600 mb-6 leading-relaxed">
-               Established with a vision to redefine legal excellence, OROELU GODWIN AGIDI & CO has been at the forefront of corporate and commercial law for over two decades. Our firm is built on a foundation of deep legal expertise, strategic thinking, and an unwavering commitment to our clients' success.
+               Established with a vision to redefine legal excellence, OROELU GODWIN AGIDI & CO has been at the forefront of corporate and commercial law for over three decades. Our firm is built on a foundation of deep legal expertise, strategic thinking, and an unwavering commitment to our clients' success.
              </p>
              <p className="text-gray-600 leading-relaxed">
                We pride ourselves on our ability to navigate complex legal landscapes and deliver innovative solutions that drive business growth. From high-stakes litigation to intricate corporate structuring, OROELU GODWIN AGIDI & CO is your trusted partner in law.
