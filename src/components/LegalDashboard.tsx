@@ -42,7 +42,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-
+import AdminBlogManager from './AdminBlogManager';
 interface LegalDashboardProps {
   user: any;
   onLogout?: () => void;
@@ -605,13 +605,23 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
             { id: 'overview', label: 'Overview', icon: Briefcase },
             { id: 'appointments', label: user.appRole === 'Admin' ? 'Appointments & Verification' : 'My Appointments Queue', icon: Calendar },
             { id: 'documents', label: user.appRole === 'Admin' ? 'Master Repository' : 'Document Review', icon: Shield },
-            { id: 'clients', label: 'Client Management', icon: UserCheck },
-            { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
+           { id: 'clients', label: 'Client Management', icon: UserCheck },
+           { id: 'blog', label: 'Blog & Legal News', icon: FileText, contentManager: true },
+           { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
             { id: 'financial', label: 'Financial Oversight', icon: CreditCard, adminOnly: true },
             { id: 'audit', label: 'System Audit Logs', icon: History, adminOnly: true },
           ].filter(t => {
-            if (t.adminOnly && user.appRole !== 'Admin') return false;
-            return true;
+  if (t.adminOnly && user.appRole !== 'Admin') return false;
+
+  if (
+    t.contentManager &&
+    user.appRole !== 'Admin' &&
+    user.appRole !== 'Staff'
+  ) {
+    return false;
+  }
+
+  return true;
           }).map((tab) => (
             <button
               key={tab.id}
