@@ -863,6 +863,10 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
                 ))}
               </div>
             </div>
+
+      ) : activeTab === 'blog' ? (
+  <AdminBlogManager />
+      
           ) : activeTab === 'clients' ? (
              <div className="p-8">
                <div className="flex items-center justify-between mb-8">
