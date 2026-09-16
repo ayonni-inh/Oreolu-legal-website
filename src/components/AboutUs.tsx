@@ -36,7 +36,7 @@ export default function AboutUs() {
   const team = [
     { name: "Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Advocacy, ADR/Arbitration, Regulatory Compliance & Risk Management" },
     { name: "Olando Powers", role: "Senior Partner", specialization: "Commercial & Corporate Law" },
-    { name: "Jane-Mary Ogochukwunemerem Mbalughi", role: "Partner", specialization: "Litigation" }
+    { name: "Jane-Mary Ogochukwunemerem Mbalughi", role: "Accountant", specialization: "Litigation" }
   ];
 
   const editorialTeam = [
