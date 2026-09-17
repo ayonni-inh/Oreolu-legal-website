@@ -602,18 +602,57 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-2xl border border-gray-200 dark:border-slate-800 mb-8 w-fit shadow-sm transition-colors">
           {[
-            { id: 'overview', label: 'Overview', icon: Briefcase },
-            { id: 'appointments', label: user.appRole === 'Admin' ? 'Appointments & Verification' : 'My Appointments Queue', icon: Calendar },
-            { id: 'documents', label: user.appRole === 'Admin' ? 'Master Repository' : 'Document Review', icon: Shield },
-           { id: 'clients', label: 'Client Management', icon: UserCheck },
-           { id: 'blog', label: 'Blog & Legal News', icon: FileText, contentManager: true },
-           { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
-            { id: 'financial', label: 'Financial Oversight', icon: CreditCard, adminOnly: true },
-            { id: 'audit', label: 'System Audit Logs', icon: History, adminOnly: true },
-          ].filter(t => {
-  if (t.adminOnly && user.appRole !== 'Admin') return false;
+  { id: 'overview', label: 'Overview', icon: Briefcase },
+  {
+    id: 'appointments',
+    label: user.appRole === 'Admin'
+      ? 'Appointments & Verification'
+      : 'My Appointments Queue',
+    icon: Calendar
+  },
+  {
+    id: 'documents',
+    label: user.appRole === 'Admin'
+      ? 'Master Repository'
+      : 'Document Review',
+    icon: Shield
+  },
+  {
+    id: 'clients',
+    label: 'Client Management',
+    icon: UserCheck
+  },
+  {
+    id: 'blog',
+    label: 'Blog & Legal News',
+    icon: FileText,
+    contentManager: true
+  },
+  {
+    id: 'users',
+    label: 'Firm Directory',
+    icon: Users,
+    adminOnly: true
+  },
+  {
+    id: 'financial',
+    label: 'Financial Oversight',
+    icon: CreditCard,
+    adminOnly: true
+  },
+  {
+    id: 'audit',
+    label: 'System Audit Logs',
+    icon: History,
+    adminOnly: true
+  },
+].filter(t => {
+  if (t.adminOnly && user.appRole !== 'Admin') {
+    return false;
+  }
 
   if (
+    'contentManager' in t &&
     t.contentManager &&
     user.appRole !== 'Admin' &&
     user.appRole !== 'Staff'
@@ -622,7 +661,7 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
   }
 
   return true;
-          }).map((tab) => (
+}).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
