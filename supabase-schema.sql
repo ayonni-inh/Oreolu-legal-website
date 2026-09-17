@@ -101,3 +101,68 @@ CREATE INDEX IF NOT EXISTS appointments_status_idx ON appointments (status);
 -- CREATE POLICY "Service role full access" ON invitations FOR ALL USING (true);
 -- CREATE POLICY "Service role full access" ON documents FOR ALL USING (true);
 -- CREATE POLICY "Service role full access" ON appointments FOR ALL USING (true);
+
+-- OGA original content: articles created by Admin/Staff in the dashboard.
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  excerpt TEXT NOT NULL DEFAULT '',
+  content TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'Legal News',
+  cover_image_url TEXT,
+  author TEXT NOT NULL DEFAULT 'OGA Solicitors',
+  read_time TEXT NOT NULL DEFAULT '5 min read',
+  published BOOLEAN NOT NULL DEFAULT FALSE,
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS blog_posts_published_idx ON blog_posts (published, published_at DESC);
+CREATE INDEX IF NOT EXISTS blog_posts_category_idx ON blog_posts (category);
+
+-- Property adverts published by the firm.
+CREATE TABLE IF NOT EXISTS property_listings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  property_type TEXT NOT NULL DEFAULT 'Other',
+  listing_type TEXT NOT NULL DEFAULT 'For Sale',
+  price NUMERIC,
+  currency TEXT NOT NULL DEFAULT 'NGN',
+  location TEXT NOT NULL DEFAULT '',
+  address TEXT,
+  bedrooms INTEGER,
+  bathrooms INTEGER,
+  area NUMERIC,
+  area_unit TEXT NOT NULL DEFAULT 'sqm',
+  land_size NUMERIC,
+  furnished BOOLEAN NOT NULL DEFAULT FALSE,
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  status TEXT NOT NULL DEFAULT 'Available',
+  cover_image_url TEXT,
+  gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+  contact_name TEXT,
+  contact_phone TEXT,
+  contact_email TEXT,
+  published BOOLEAN NOT NULL DEFAULT FALSE,
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS property_listings_public_idx ON property_listings (published, featured, created_at DESC);
+CREATE INDEX IF NOT EXISTS property_listings_type_idx ON property_listings (property_type, listing_type, status);
+
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_listings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can read published blog posts" ON blog_posts;
+CREATE POLICY "Public can read published blog posts"
+  ON blog_posts FOR SELECT USING (published = true);
+
+DROP POLICY IF EXISTS "Public can read published property listings" ON property_listings;
+CREATE POLICY "Public can read published property listings"
+  ON property_listings FOR SELECT USING (published = true);

@@ -43,6 +43,7 @@ import {
   Line
 } from 'recharts';
 import AdminBlogManager from './AdminBlogManager';
+import AdminPropertyManager from './AdminPropertyManager';
 interface LegalDashboardProps {
   user: any;
   onLogout?: () => void;
@@ -629,6 +630,12 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
     contentManager: true
   },
   {
+    id: 'properties',
+    label: 'Property Advertisements',
+    icon: Briefcase,
+    contentManager: true
+  },
+  {
     id: 'users',
     label: 'Firm Directory',
     icon: Users,
@@ -905,6 +912,8 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
 
       ) : activeTab === 'blog' ? (
   <AdminBlogManager />
+          ) : activeTab === 'properties' ? (
+  <AdminPropertyManager />
       
           ) : activeTab === 'clients' ? (
              <div className="p-8">

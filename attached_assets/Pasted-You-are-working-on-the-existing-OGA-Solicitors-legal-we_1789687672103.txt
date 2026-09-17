@@ -1,0 +1,730 @@
+You are working on the existing OGA Solicitors legal website project.
+
+Do NOT rebuild the application from scratch. Do NOT replace the existing authentication system, dashboard, styling system, Supabase setup, or existing pages.
+
+Your task is to implement two new content-management systems using the existing application architecture:
+
+1. Admin Blog & Legal News Manager
+2. Property Advert Management + Public Property Advert Page
+
+The implementation must be fully database-backed. Do NOT use fake/generated blog posts, hardcoded property listings, mock JSON, Gemini-generated news, or static placeholder records as the data source.
+
+==================================================
+PART 1 — ADMIN BLOG & LEGAL NEWS
+
+Create an Admin/Staff content-management interface called:
+
+"Blog & Legal News"
+
+It must appear as a new tab inside the existing LegalDashboard.
+
+Use the existing dashboard navigation and styling.
+
+Only users whose existing "user.appRole" is:
+
+- Admin
+- Staff
+
+should be able to access the content-management interface.
+
+Do not create a second authentication system.
+
+Use the project's existing authentication/session mechanism.
+
+The existing session uses the "oga_session" cookie and the existing server authentication helpers in:
+
+"lib/server/shared.ts"
+
+Use the existing role-checking mechanism.
+
+==================================================
+BLOG DATABASE
+
+The Supabase database already contains:
+
+"blog_posts"
+
+with these fields:
+
+- id
+- title
+- slug
+- excerpt
+- content
+- category
+- cover_image_url
+- author
+- read_time
+- published
+- published_at
+- created_at
+- updated_at
+
+Use this existing table.
+
+Do not create a duplicate blog table unless absolutely necessary.
+
+The blog system must support:
+
+- Create article
+- Save as draft
+- Publish article
+- Edit article
+- Unpublish article
+- Delete article
+- View published articles
+- View drafts from the admin interface
+- Search/filter articles
+- Category filtering
+
+Suggested categories:
+
+- Legal News
+- Corporate Law
+- Technology Law
+- Employment Law
+- Immigration
+- Human Rights
+- Property Law
+- Family Law
+- Litigation
+- Business Law
+
+==================================================
+BLOG ADMIN UI
+
+Create or update:
+
+"src/components/AdminBlogManager.tsx"
+
+The interface should contain:
+
+A. Article editor
+
+Fields:
+
+- Article title
+- Category
+- Short excerpt
+- Full article content
+- Cover image
+- Author
+- Read time
+- Publication status
+
+Buttons:
+
+- Save Draft
+- Publish Article
+- Cancel
+- Update Article
+
+B. Article management list
+
+Display:
+
+- Title
+- Category
+- Author
+- Date
+- Status
+- Edit
+- Delete
+
+Statuses:
+
+- Draft
+- Published
+
+Allow the administrator to edit an existing draft and publish it later.
+
+The admin list must return BOTH drafts and published articles.
+
+Do not use the public endpoint for the admin list if that endpoint intentionally only returns published articles.
+
+==================================================
+BLOG API
+
+Use the existing API architecture.
+
+The project already has:
+
+"app/api/blog/posts/route.ts"
+
+and:
+
+"app/api/blog/posts/[id]/route.ts"
+
+Keep these routes.
+
+Improve them where necessary.
+
+Public GET requests must only expose:
+
+"published = true"
+
+Admin/Staff requests must be able to retrieve drafts and published posts.
+
+POST/PATCH/DELETE must require:
+
+Admin OR Staff.
+
+Validate request bodies using Zod.
+
+Generate unique slugs.
+
+Do not allow duplicate slugs.
+
+When an article changes from draft → published:
+
+set:
+
+"published = true"
+
+and:
+
+"published_at = current timestamp"
+
+When changing from published → draft:
+
+set:
+
+"published = false"
+
+and:
+
+"published_at = null"
+
+Never expose drafts through the public website.
+
+==================================================
+BLOG PUBLIC WEBSITE
+
+Update the existing public Blog component so it reads from the real database API.
+
+The public Blog page should display:
+
+- Cover image
+- Category
+- Title
+- Excerpt
+- Author
+- Published date
+- Read time
+
+Clicking an article should open:
+
+"/blog/[slug]"
+
+Create the corresponding dynamic route if it does not already exist.
+
+The individual article page should display:
+
+- Title
+- Category
+- Cover image
+- Author
+- Published date
+- Read time
+- Full content
+- Related articles if practical
+
+Only published articles may appear publicly.
+
+==================================================
+PART 2 — PROPERTY ADVERT MANAGEMENT
+
+Create a new property advertising system following the exact same architecture:
+
+Admin/Staff management → Supabase database → API → Public property listings → Property detail page.
+
+The purpose is for OGA Solicitors to publish property adverts for users.
+
+Examples:
+
+- Houses
+- Apartments
+- Land
+- Commercial property
+- Office space
+- Shops
+- Industrial property
+- Property for sale
+- Property for rent
+- Property for lease
+
+==================================================
+PROPERTY DATABASE
+
+Create a Supabase table:
+
+"property_listings"
+
+Fields:
+
+- id UUID primary key
+- title
+- slug unique
+- description
+- property_type
+- listing_type
+- price
+- currency
+- location
+- address
+- bedrooms
+- bathrooms
+- area
+- area_unit
+- land_size
+- furnished
+- featured
+- status
+- cover_image_url
+- gallery_images
+- contact_name
+- contact_phone
+- contact_email
+- published
+- published_at
+- created_at
+- updated_at
+
+Use appropriate PostgreSQL types.
+
+For example:
+
+"price" should be numeric.
+
+"bedrooms" and "bathrooms" should be integers.
+
+"gallery_images" can be a JSON/JSONB array of image URLs.
+
+"furnished" should be boolean.
+
+"featured" should be boolean.
+
+"published" should be boolean.
+
+Suggested:
+
+property_type:
+
+- House
+- Apartment
+- Duplex
+- Land
+- Office
+- Shop
+- Warehouse
+- Commercial
+- Other
+
+listing_type:
+
+- For Sale
+- For Rent
+- For Lease
+
+status:
+
+- Available
+- Reserved
+- Sold
+- Rented
+- Leased
+- Off Market
+
+==================================================
+PROPERTY ADMIN MANAGER
+
+Create:
+
+"src/components/AdminPropertyManager.tsx"
+
+Add a new dashboard tab:
+
+"Property Advertisements"
+
+Use an appropriate Lucide icon.
+
+Only Admin and Staff should see this management interface.
+
+The admin should be able to:
+
+- Create property
+- Save draft
+- Publish property
+- Edit property
+- Unpublish property
+- Delete property
+- Mark property as featured
+- Change property status
+- Add multiple property images
+- Preview property
+- Search properties
+- Filter by property type
+- Filter by listing type
+- Filter by status
+
+The interface should follow the existing OGA dashboard visual language.
+
+Do not introduce a completely different UI framework.
+
+==================================================
+PROPERTY API
+
+Create:
+
+"app/api/properties/route.ts"
+
+and:
+
+"app/api/properties/[id]/route.ts"
+
+GET:
+
+Public users may retrieve published properties.
+
+Admin/Staff may retrieve all properties including drafts.
+
+POST:
+
+Admin/Staff only.
+
+PATCH:
+
+Admin/Staff only.
+
+DELETE:
+
+Admin/Staff only.
+
+Use Zod validation.
+
+Generate unique slugs.
+
+Do not trust role information sent by the browser.
+
+Use the existing server-side session/authentication mechanism.
+
+==================================================
+PUBLIC PROPERTY PAGE
+
+Create a public page:
+
+"/properties"
+
+This becomes the public property advert directory.
+
+Display property cards containing:
+
+- Image
+- Property title
+- Location
+- Property type
+- Listing type
+- Price
+- Bedrooms
+- Bathrooms
+- Area
+- Featured badge where applicable
+- Availability status
+
+Add filters:
+
+- Property type
+- For Sale / For Rent / For Lease
+- Location
+- Price range
+- Bedrooms
+
+Add search.
+
+Only published properties should appear.
+
+==================================================
+PROPERTY DETAIL PAGE
+
+Create:
+
+"/properties/[slug]"
+
+The detail page should include:
+
+- Large cover image
+- Image gallery
+- Property title
+- Location
+- Price
+- Listing type
+- Property type
+- Bedrooms
+- Bathrooms
+- Area
+- Land size
+- Furnished status
+- Description
+- Availability status
+- Contact information
+
+Include a clear CTA:
+
+"Enquire About This Property"
+
+If the existing application has an appointment/contact system, integrate the CTA with that system rather than creating an unrelated contact mechanism.
+
+==================================================
+DATABASE SECURITY
+
+Enable Row Level Security on:
+
+"property_listings"
+
+Public users should only be able to read:
+
+"published = true"
+
+Do not expose drafts.
+
+Admin writes should happen through secure server-side API routes using the existing authentication plus the Supabase server/admin client.
+
+The Supabase service-role key must NEVER be exposed to:
+
+- browser code
+- client components
+- NEXT_PUBLIC environment variables
+- API responses
+
+Keep:
+
+"SUPABASE_SERVICE_ROLE_KEY"
+
+server-only.
+
+The existing server admin client is:
+
+"lib/server/admin.ts"
+
+Use it for privileged database operations.
+
+==================================================
+IMAGE HANDLING
+
+Do not expose Supabase service-role credentials in the browser.
+
+If the existing project already has Supabase Storage functionality, use the existing storage architecture.
+
+If image upload is not yet implemented, initially allow administrators to provide image URLs while keeping the database structure ready for proper Supabase Storage uploads.
+
+Do not introduce an external image hosting service without first checking the existing project.
+
+==================================================
+DASHBOARD NAVIGATION
+
+Inside:
+
+"src/components/LegalDashboard.tsx"
+
+add:
+
+"Blog & Legal News"
+
+and:
+
+"Property Advertisements"
+
+Both should be visible to:
+
+Admin
+Staff
+
+Do not show either content-management tab to ordinary users.
+
+The dashboard should render:
+
+"<AdminBlogManager />"
+
+for the blog tab.
+
+and:
+
+"<AdminPropertyManager />"
+
+for the property tab.
+
+==================================================
+IMPORTANT EXISTING PROJECT RULES
+
+Preserve the existing:
+
+- Authentication
+- User roles
+- Dashboard
+- Supabase configuration
+- Styling
+- Tailwind setup
+- Existing navigation
+- Existing legal functionality
+- Existing appointment system
+- Existing document system
+- Existing client management
+- Existing financial system
+- Existing audit functionality
+
+Do not replace working components unnecessarily.
+
+Do not migrate the project to another framework.
+
+Do not introduce a second database.
+
+Do not create fake data.
+
+Do not use Gemini to generate fake legal articles.
+
+Do not hardcode blog posts.
+
+Do not hardcode properties.
+
+==================================================
+OLD BLOG IMPLEMENTATION
+
+The old blog implementation previously generated/faked legal news.
+
+Remove its use as a content source.
+
+The database must now be the source of truth.
+
+If there is an existing:
+
+"fallbackBlogPosts"
+
+or similar fallback data in:
+
+"lib/server/shared.ts"
+
+do not delete authentication infrastructure just to remove the fallback.
+
+First search the repository for all references to the fallback data.
+
+Remove the fallback from the public blog flow once the database implementation is confirmed working.
+
+==================================================
+SEO
+
+Implement proper SEO for:
+
+"/blog"
+
+"/blog/[slug]"
+
+"/properties"
+
+"/properties/[slug]"
+
+Use dynamic metadata where appropriate.
+
+For blog articles include:
+
+- title
+- description
+- canonical URL
+- Open Graph metadata
+- Article structured data where practical
+
+For properties include:
+
+- property title
+- location
+- description
+- price
+- Open Graph image
+
+Do not expose unpublished content in metadata.
+
+==================================================
+CONTENT MODEL PRINCIPLE
+
+The website should now have two separate types of content:
+
+1. ORIGINAL OGA CONTENT
+
+Created by OGA Solicitors through the Blog & Legal News manager.
+
+2. THIRD-PARTY LEGAL NEWS
+
+This will be added later through a separate news-source/RSS ingestion system.
+
+Do NOT mix third-party news into "blog_posts".
+
+Keep "blog_posts" for original OGA content.
+
+The existing database also contains:
+
+"news_sources"
+
+and:
+
+"external_news_items"
+
+These are reserved for the future third-party legal-news aggregation system.
+
+Do not break those tables.
+
+==================================================
+ERROR HANDLING
+
+Use proper loading states.
+
+Use empty states.
+
+Use user-friendly error messages.
+
+Log server errors with "console.error".
+
+Do not expose database errors, service-role credentials, or internal implementation details to public users.
+
+==================================================
+FINAL TESTING
+
+After implementation:
+
+1. Run the project's type checker/build.
+2. Verify there are no TypeScript errors.
+3. Verify the dashboard loads.
+4. Verify Admin can see Blog & Legal News.
+5. Verify Staff can see Blog & Legal News.
+6. Verify ordinary users cannot see the content-management tabs.
+7. Create a blog draft.
+8. Verify the draft does NOT appear publicly.
+9. Publish the article.
+10. Verify it appears on "/blog".
+11. Open "/blog/[slug]".
+12. Edit the article.
+13. Unpublish it.
+14. Verify it disappears publicly.
+15. Create a property draft.
+16. Verify it does NOT appear on "/properties".
+17. Publish the property.
+18. Verify it appears on "/properties".
+19. Open "/properties/[slug]".
+20. Edit the property.
+21. Mark it featured.
+22. Verify the featured state appears publicly.
+23. Delete a test property.
+24. Verify it is removed.
+
+Before making destructive changes to existing functionality, inspect the repository and explain what you intend to change.
+
+At the end, provide a concise summary of:
+
+- files created
+- files modified
+- database tables created/modified
+- API routes created
+- public pages created
+- authentication/security approach
+- tests/build result
+- any remaining issues
+
+Most importantly: work with the existing OGA Solicitors application. This is an incremental feature implementation, not a new application.

@@ -864,45 +864,6 @@ export const ONBOARDING_FORMS = [
   },
 ];
 
-export const fallbackBlogPosts = [
-  {
-    id: "1",
-    title: "New Pan-African Trade Agreement Reshapes Corporate Law",
-    excerpt:
-      "The recently ratified trade agreement introduces new compliance requirements for businesses operating across African borders.",
-    content:
-      "The landscape of corporate law in Africa is undergoing a massive shift...",
-    date: "March 25, 2026",
-    readTime: "6 min read",
-    category: "Corporate Law",
-    imageUrl:
-      "https://images.unsplash.com/photo-1589829085413-56de8ae18c73?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "2",
-    title: "Nigeria's Data Protection Act: What Tech Startups Need to Know",
-    excerpt: "Strict new data privacy regulations are now in effect...",
-    content: "In a move to align with global data privacy standards...",
-    date: "March 22, 2026",
-    readTime: "4 min read",
-    category: "Tech Regulation",
-    imageUrl:
-      "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    id: "3",
-    title: "Navigating Immigration Law Changes for African Students in the UK",
-    excerpt:
-      "Recent policy updates have altered the visa application process...",
-    content: "African students planning to study in the United Kingdom...",
-    date: "March 20, 2026",
-    readTime: "5 min read",
-    category: "Immigration Law",
-    imageUrl:
-      "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
-  },
-];
-
 export function toUserShape(data: any) {
   return {
     id: data.id,

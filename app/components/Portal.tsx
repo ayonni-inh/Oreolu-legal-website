@@ -26,6 +26,7 @@ const ProfilePage = dynamic(() => import('@/src/components/ProfilePage'));
 const TermsOfService = dynamic(() => import('@/src/components/TermsOfService'));
 const PrivacyPolicy = dynamic(() => import('@/src/components/PrivacyPolicy'));
 const Blog = dynamic(() => import('@/src/components/Blog'));
+const Properties = dynamic(() => import('@/src/components/Properties'));
 
 const Forbidden = ({ onReturnHome }: { onReturnHome?: () => void }) => (
   <div className="pt-40 pb-60 px-6 text-center">
@@ -137,7 +138,16 @@ export default function Portal() {
       case 'about-us':
         return <AboutUs />;
       case 'blog':
-        return <Blog />;
+      case currentPage.startsWith('blog-') ? currentPage : '__not-blog':
+        return <Blog slug={currentPage.startsWith('blog-') ? currentPage.slice(5) : undefined} />;
+      case 'properties':
+      case currentPage.startsWith('properties-') ? currentPage : '__not-properties':
+        return (
+          <Properties
+            slug={currentPage.startsWith('properties-') ? currentPage.slice(11) : undefined}
+            onEnquire={() => setSelectedService({ title: 'Property Consultation', price: 'TBD' })}
+          />
+        );
       case 'contact-us':
         return <ContactUs />;
       case 'terms-of-service':
