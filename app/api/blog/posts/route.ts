@@ -80,14 +80,17 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, ['Admin', 'Staff']);
+  try {
+    const auth = await requireRole(req, ['Admin', 'Staff']);
 
-if (!auth.allowed) {
-  return auth.response;
-}
+    if (!auth.allowed) {
+      return auth.response;
+    }
 
-const user = auth.session;
-  const parsed = articleSchema.safeParse(await req.json());
+    const user = auth.session;
+
+    const body = await req.json();
+    const parsed = createPostSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid article details" }, { status: 400 });
   const input = parsed.data;
   const now = new Date().toISOString();
