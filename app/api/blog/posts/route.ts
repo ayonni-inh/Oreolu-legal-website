@@ -83,11 +83,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireRole(req, ['Admin', 'Staff']);
 
-    if (!auth.allowed) {
-      return auth.response;
-    }
+if (!auth.allowed) {
+  return auth.response;
+}
 
-    const user = auth.session;
+const user = auth.session;
 
     const body = await req.json();
     const parsed = createPostSchema.safeParse(body);
