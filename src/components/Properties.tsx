@@ -33,10 +33,44 @@ export default function Properties({ slug, onEnquire }: { slug?: string; onEnqui
       if (search) params.set('search', search);
       if (filters.propertyType) params.set('propertyType', filters.propertyType);
       if (filters.listingType) params.set('listingType', filters.listingType);
-      const response = await fetch(`/api/properties?${params}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error();
-      let result = Array.isArray(data.properties) ? data.properties : [];
+    const response = await fetch(`/api/properties?${params}`);
+const data = await response.json();
+
+if (!response.ok) throw new Error();
+
+const rawProperties = Array.isArray(data)
+  ? data
+  : Array.isArray(data.properties)
+    ? data.properties
+    : [];
+
+let result: Property[] = rawProperties.map((item: any) => ({
+  id: item.id,
+  slug: item.slug,
+  title: item.title,
+  description: item.description || '',
+  propertyType: item.property_type || 'House',
+  listingType: item.listing_type || 'For Sale',
+  price: item.price,
+  currency: item.currency || 'NGN',
+  location: item.location || '',
+  address: item.address || null,
+  bedrooms: item.bedrooms,
+  bathrooms: item.bathrooms,
+  area: item.area,
+  areaUnit: item.area_unit || 'sqm',
+  landSize: item.land_size,
+  furnished: Boolean(item.furnished),
+  featured: Boolean(item.featured),
+  status: item.status || 'Available',
+  coverImageUrl: item.cover_image_url || null,
+  galleryImages: Array.isArray(item.gallery_images)
+    ? item.gallery_images
+    : [],
+  contactName: item.contact_name || null,
+  contactPhone: item.contact_phone || null,
+  contactEmail: item.contact_email || null,
+}));
       if (filters.bedrooms) result = result.filter((item: Property) => Number(item.bedrooms || 0) >= Number(filters.bedrooms));
       if (filters.minPrice) result = result.filter((item: Property) => Number(item.price || 0) >= Number(filters.minPrice));
       if (filters.maxPrice) result = result.filter((item: Property) => Number(item.price || 0) <= Number(filters.maxPrice));
