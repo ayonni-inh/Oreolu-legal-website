@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import AdminBlogManager from './AdminBlogManager';
+import AdminPropertyManager from './AdminPropertyManager';
 import {
   Users,
   Calendar,
@@ -50,6 +52,7 @@ interface LegalDashboardProps {
 }
 
 export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps) {
+
   const [activeTab, setActiveTab] = useState('overview');
   const [appointments, setAppointments] = useState<any[]>([]);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -606,13 +609,16 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
             { id: 'appointments', label: user.appRole === 'Admin' ? 'Appointments & Verification' : 'My Appointments Queue', icon: Calendar },
             { id: 'documents', label: user.appRole === 'Admin' ? 'Master Repository' : 'Document Review', icon: Shield },
             { id: 'clients', label: 'Client Management', icon: UserCheck },
+            { id: 'blog', label: 'Blog & Legal News', icon: FileText, contentManager: true },
+            { id: 'properties', label: 'Properties', icon: Briefcase, contentManager: true },
             { id: 'users', label: 'Firm Directory', icon: Users, adminOnly: true },
             { id: 'financial', label: 'Financial Oversight', icon: CreditCard, adminOnly: true },
             { id: 'audit', label: 'System Audit Logs', icon: History, adminOnly: true },
           ].filter(t => {
-            if (t.adminOnly && user.appRole !== 'Admin') return false;
-            return true;
-          }).map((tab) => (
+  if (t.adminOnly && user.appRole !== 'Admin') return false;
+  if (t.contentManager && user.appRole !== 'Admin' && user.appRole !== 'Staff') return false;
+  return true;
+}).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -937,7 +943,12 @@ export default function LegalDashboard({ user, onNavigate }: LegalDashboardProps
                   </div>
                </div>
              </div>
-          ) : activeTab === 'documents' ? (
+
+             ) : activeTab === 'blog' ? (
+    <AdminBlogManager />
+) : activeTab === 'properties' ? (
+    <AdminPropertyManager />
+) : activeTab === 'documents' ? (
             <div>
               <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 className="font-serif text-xl font-bold text-navy">Consolidated File Repository</h3>

@@ -31,7 +31,8 @@ export default function Header({ isLoggedIn, user, onRegisterClick, onLoginClick
   const navItems = [
     { id: 'home', label: 'Home', roles: ['All'] },
     { id: 'blog', label: 'Blog', roles: ['All'] },
-    { id: 'legal-research', label: 'Legal Research', roles: ['All'] },
+{ id: 'properties', label: 'Properties', roles: ['All'] },
+{ id: 'legal-research', label: 'Legal Research', roles: ['All'] },
     { id: 'admin-dashboard', label: 'Management', roles: ['Admin'] },
     { id: 'ai-center', label: 'AI Center', roles: ['Admin'] },
     { id: 'staff-portal', label: 'Staff Portal', roles: ['Staff'] },

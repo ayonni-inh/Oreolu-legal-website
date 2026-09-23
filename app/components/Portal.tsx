@@ -26,6 +26,7 @@ const ProfilePage = dynamic(() => import('@/src/components/ProfilePage'));
 const TermsOfService = dynamic(() => import('@/src/components/TermsOfService'));
 const PrivacyPolicy = dynamic(() => import('@/src/components/PrivacyPolicy'));
 const Blog = dynamic(() => import('@/src/components/Blog'));
+const Properties = dynamic(() => import('@/src/components/Properties'));
 
 const Forbidden = ({ onReturnHome }: { onReturnHome?: () => void }) => (
   <div className="pt-40 pb-60 px-6 text-center">
@@ -138,6 +139,8 @@ export default function Portal() {
         return <AboutUs />;
       case 'blog':
         return <Blog />;
+      case 'properties':
+        return <Properties />;
       case 'contact-us':
         return <ContactUs />;
       case 'terms-of-service':
