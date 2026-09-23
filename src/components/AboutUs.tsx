@@ -29,14 +29,16 @@ export default function AboutUs() {
   const stats = [
     { label: "Years of Experience", value: "25+" },
     { label: "Successful Cases", value: "1,500+" },
-    { label: "Expert Attorneys", value: "10" },
+    { label: "Expert Attorneys", value: "5" },
     { label: "Global Partners", value: "2" }
   ];
 
   const team = [
-    { name: "Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Advocacy, ADR/Arbitration, Regulatory Compliance & Risk Management" },
+     { name: "Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Advocacy, ADR/Arbitration, Regulatory Compliance & Risk Management" },
     { name: "Olando Powers", role: "Senior Partner", specialization: "Commercial & Corporate Law" },
-    { name: "Jane-Mary Ogochukwunemerem Mbalughi", role: "Partner", specialization: "Litigation" }
+    { name: "Osazuwa John Ubo Osq", role: "Associate Partner", specialization: "Regulatory Compliance" },
+    { name: "Grace Emuebie Omodion", role: "Head of Administration" },
+    { name: "Jane-Mary Ogochukwunemerem Mbalughi", role: "Associates", specialization: "Litigation" }
   ];
 
   const editorialTeam = [
