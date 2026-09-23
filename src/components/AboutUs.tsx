@@ -29,7 +29,7 @@ export default function AboutUs() {
   const stats = [
     { label: "Years of Experience", value: "25+" },
     { label: "Successful Cases", value: "1,500+" },
-    { label: "Expert Attorneys", value: "10" },
+    { label: "Expert Attorneys", value: "5" },
     { label: "Global Partners", value: "2" }
   ];
 
