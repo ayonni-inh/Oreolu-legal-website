@@ -21,7 +21,7 @@ const updateSchema = z.object({
   category: z.string().min(2).optional(),
   coverImageUrl: z.string().url().or(z.literal("")).nullable().optional(),
   author: z.string().min(2).optional(),
-  readTime: z.string().min(2).optional(),
+  readTime: z.coerce.number().int().min(1).optional(),
   published: z.boolean().optional(),
 });
 
@@ -87,7 +87,7 @@ export async function PATCH(
     ...(input.category !== undefined && { category: input.category.trim() }),
     ...(input.coverImageUrl !== undefined && { cover_image_url: input.coverImageUrl || null }),
     ...(input.author !== undefined && { author: input.author.trim() }),
-    ...(input.readTime !== undefined && { read_time: input.readTime.trim() }),
+    ...(input.readTime !== undefined && { read_time: input.readTime }),
     ...(input.published !== undefined && {
       published: input.published,
       published_at: input.published ? now : null,

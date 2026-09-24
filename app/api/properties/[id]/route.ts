@@ -67,7 +67,7 @@ export async function GET(
   const supabase = getSupabaseAdminClient();
   try {
     if (supabase) {
-      let query = supabase.from("property_listings").select("*");
+      let query = supabase.from("properties").select("*");
       query = /^[0-9a-f-]{36}$/i.test(id) ? query.eq("id", id) : query.eq("slug", id);
       if (!isManager) query = query.eq("published", true);
       const { data, error } = await query.maybeSingle();
@@ -119,13 +119,13 @@ export async function PATCH(
     ...(input.contactName !== undefined && { contact_name: asNullableString(input.contactName) }),
     ...(input.contactPhone !== undefined && { contact_phone: asNullableString(input.contactPhone) }),
     ...(input.contactEmail !== undefined && { contact_email: asNullableString(input.contactEmail) }),
-    ...(input.published !== undefined && { published: input.published, published_at: input.published ? now : null }),
+    ...(input.published !== undefined && { published: input.published }),
     updated_at: now,
   };
   const supabase = getSupabaseAdminClient();
   try {
     if (supabase) {
-      const { data, error } = await supabase.from("property_listings").update(updates).eq("id", id).select().maybeSingle();
+      const { data, error } = await supabase.from("properties").update(updates).eq("id", id).select().maybeSingle();
       if (error) throw error;
       if (data) {
         recordActivity({
@@ -165,7 +165,7 @@ export async function DELETE(
   const supabase = getSupabaseAdminClient();
   try {
     if (supabase) {
-      const { error } = await supabase.from("property_listings").delete().eq("id", id);
+      const { error } = await supabase.from("properties").delete().eq("id", id);
       if (error) throw error;
     } else {
       const index = fallbackPropertyListings.findIndex((item) => item.id === id || item.slug === id);

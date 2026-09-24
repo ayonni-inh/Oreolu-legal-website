@@ -16,7 +16,7 @@ const articleSchema = z.object({
   category: z.string().min(2),
   coverImageUrl: z.string().url().or(z.literal("")).nullable().optional(),
   author: z.string().min(2),
-  readTime: z.string().min(2),
+  readTime: z.coerce.number().int().min(1),
   published: z.boolean().default(false),
 });
 
@@ -90,8 +90,18 @@ if (!auth.allowed) {
 const user = auth.session;
 
     const body = await req.json();
-    const parsed = createPostSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid article details" }, { status: 400 });
+    const parsed = articleSchema.safeParse(body);
+  if (!parsed.success) {
+  console.error("Blog validation failed:", parsed.error.flatten());
+
+  return NextResponse.json(
+    {
+      error: "Invalid article details",
+      details: parsed.error.flatten(),
+    },
+    { status: 400 }
+  );
+}
   const input = parsed.data;
   const now = new Date().toISOString();
   const post = {
@@ -102,7 +112,7 @@ const user = auth.session;
     category: input.category.trim(),
     cover_image_url: input.coverImageUrl || null,
     author: input.author.trim(),
-    read_time: input.readTime.trim(),
+    read_time: input.readTime,
     published: input.published,
     published_at: input.published ? now : null,
     created_at: now,
@@ -137,11 +147,26 @@ const user = auth.session;
       details: `${input.published ? "Published" : "Saved draft"} article: ${input.title}`,
     });
     return NextResponse.json(fallback, { status: 201 });
-  } catch (error) {
-    console.error("Error creating blog post:", error);
-    if ((error as { code?: string })?.code === "23505") {
-      return NextResponse.json({ error: "That article slug is already in use" }, { status: 409 });
+      } catch (error) {
+      console.error("Error creating blog post:", error);
+      if ((error as { code?: string })?.code === "23505") {
+        return NextResponse.json(
+          { error: "That article slug is already in use" },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Unable to save article. Check that the blog_posts table exists." },
+        { status: 500 },
+      );
     }
-    return NextResponse.json({ error: "Unable to save article. Check that the blog_posts table exists." }, { status: 500 });
+  } catch (error) {
+    console.error("Unexpected error creating blog post:", error);
+
+    return NextResponse.json(
+      { error: "Unable to create blog post" },
+      { status: 500 },
+    );
   }
 }

@@ -34,7 +34,7 @@ export default function AboutUs() {
   ];
 
   const team = [
-    { name: "Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Advocacy, ADR/Arbitration, Regulatory Compliance & Risk Management" },
+     { name: "Oroelu Godwin Agidi", role: "Founder & Lead Partner", specialization: "Advocacy, ADR/Arbitration, Regulatory Compliance & Risk Management" },
     { name: "Olando Powers", role: "Senior Partner", specialization: "Commercial & Corporate Law" },
     { name: "Osazuwa John Ubo Osq", role: "Associate Partner", specialization: "Regulatory Compliance" },
     { name: "Grace Emuebie Omodion", role: "Head of Administration" },

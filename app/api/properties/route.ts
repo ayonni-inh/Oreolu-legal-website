@@ -76,9 +76,8 @@ function toRecord(input: z.infer<typeof propertySchema>, now: string) {
     contact_phone: asNullableString(input.contactPhone),
     contact_email: asNullableString(input.contactEmail),
     published: input.published,
-    published_at: input.published ? now : null,
     created_at: now,
-    updated_at: now,
+     updated_at: now,
   };
 }
 
@@ -100,7 +99,7 @@ export async function GET(req: NextRequest) {
   try {
     let properties: any[] = [];
     if (supabase) {
-      let query = supabase.from("property_listings").select("*").order("featured", { ascending: false }).order("created_at", { ascending: false });
+      let query = supabase.from("properties").select("*").order("featured", { ascending: false }).order("created_at", { ascending: false });
       if (!isManager) query = query.eq("published", true);
       if (type) query = query.eq("property_type", type);
       if (listing) query = query.eq("listing_type", listing);
@@ -145,38 +144,73 @@ export async function POST(req: NextRequest) {
   const record = toRecord(parsed.data, now);
   const supabase = getSupabaseAdminClient();
 
-  try {
+    try {
     if (supabase) {
-      const { data, error } = await supabase.from("property_listings").insert(record).select().single();
+      const { data, error } = await supabase
+        .from("properties")
+        .insert(record)
+        .select()
+        .single();
+
       if (error) throw error;
+
       recordActivity({
         actorId: auth.session.id,
         actorName: auth.session.email,
         actorRole: auth.session.role,
         category: "CONTENT",
-        action: parsed.data.published ? "PROPERTY_PUBLISHED" : "PROPERTY_DRAFTED",
+        action: parsed.data.published
+          ? "PROPERTY_PUBLISHED"
+          : "PROPERTY_DRAFTED",
         target: data.id,
         details: `${parsed.data.published ? "Published" : "Saved draft"} property: ${parsed.data.title}`,
       });
+
       return NextResponse.json(data, { status: 201 });
     }
+
     const fallback = { id: newContentId("property"), ...record };
+
     fallbackPropertyListings.unshift(fallback);
+
     recordActivity({
       actorId: auth.session.id,
       actorName: auth.session.email,
       actorRole: auth.session.role,
       category: "CONTENT",
-      action: parsed.data.published ? "PROPERTY_PUBLISHED" : "PROPERTY_DRAFTED",
+      action: parsed.data.published
+        ? "PROPERTY_PUBLISHED"
+        : "PROPERTY_DRAFTED",
       target: fallback.id,
       details: `${parsed.data.published ? "Published" : "Saved draft"} property: ${parsed.data.title}`,
     });
+
     return NextResponse.json(fallback, { status: 201 });
   } catch (error) {
     console.error("Error creating property:", error);
-    if ((error as { code?: string })?.code === "23505") {
-      return NextResponse.json({ error: "That property slug is already in use" }, { status: 409 });
+
+    const supabaseError = error as {
+      code?: string;
+      message?: string;
+      details?: string;
+      hint?: string;
+    };
+
+    if (supabaseError.code === "23505") {
+      return NextResponse.json(
+        { error: "That property slug is already in use" },
+        { status: 409 },
+      );
     }
-    return NextResponse.json({ error: "Unable to save property. Check that the property_listings table exists." }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        error: supabaseError.message || "Unable to save property.",
+        details: supabaseError.details || null,
+        hint: supabaseError.hint || null,
+        code: supabaseError.code || null,
+      },
+      { status: 500 },
+    );
   }
 }

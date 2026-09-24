@@ -1,151 +1,1118 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Building2, CheckCircle2, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
 
-const propertyTypes = ['House', 'Apartment', 'Duplex', 'Land', 'Office', 'Shop', 'Warehouse', 'Commercial', 'Other'];
-const listingTypes = ['For Sale', 'For Rent', 'For Lease'];
-const statuses = ['Available', 'Reserved', 'Sold', 'Rented', 'Leased', 'Off Market'];
+import { useEffect, useMemo, useState } from 'react';
 
-const emptyProperty = {
-  title: '', slug: '', description: '', propertyType: 'House', listingType: 'For Sale',
-  price: '', currency: 'NGN', location: '', address: '', bedrooms: '', bathrooms: '',
-  area: '', areaUnit: 'sqm', landSize: '', furnished: false, featured: false,
-  status: 'Available', coverImageUrl: '', galleryImages: '', contactName: '',
-  contactPhone: '', contactEmail: '', published: false,
+
+
+type Property = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  property_type: string;
+  listing_type: string;
+  price: number | null;
+  currency: string;
+  location: string | null;
+  address: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  area: number | null;
+  area_unit: string | null;
+  land_size: number | null;
+  furnished: boolean;
+  featured: boolean;
+  status: string;
+  cover_image_url: string | null;
+  gallery_images: string[];
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
+type PropertyForm = {
+  title: string;
+  slug: string;
+  description: string;
+  propertyType: string;
+  listingType: string;
+  price: string;
+  currency: string;
+  location: string;
+  address: string;
+  bedrooms: string;
+  bathrooms: string;
+  area: string;
+  areaUnit: string;
+  landSize: string;
+  furnished: boolean;
+  featured: boolean;
+  status: string;
+  coverImageUrl: string;
+  galleryImages: string[];
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  published: boolean;
+};
+
+const PROPERTY_TYPES = [
+  'House',
+  'Apartment',
+  'Duplex',
+  'Land',
+  'Office',
+  'Shop',
+  'Warehouse',
+  'Commercial',
+  'Other',
+];
+
+const LISTING_TYPES = ['For Sale', 'For Rent', 'For Lease'];
+
+const STATUSES = [
+  'Available',
+  'Reserved',
+  'Sold',
+  'Rented',
+  'Leased',
+  'Off Market',
+];
+
+const emptyForm: PropertyForm = {
+  title: '',
+  slug: '',
+  description: '',
+  propertyType: 'House',
+  listingType: 'For Sale',
+  price: '',
+  currency: 'NGN',
+  location: '',
+  address: '',
+  bedrooms: '',
+  bathrooms: '',
+  area: '',
+  areaUnit: 'sqm',
+  landSize: '',
+  furnished: false,
+  featured: false,
+  status: 'Available',
+  coverImageUrl: '',
+  galleryImages: [],
+  contactName: '',
+  contactPhone: '',
+  contactEmail: '',
+  published: false,
+};
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export default function AdminPropertyManager() {
-  const [properties, setProperties] = useState<any[]>([]);
-  const [form, setForm] = useState(emptyProperty);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [form, setForm] = useState<PropertyForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [listingFilter, setListingFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const loadProperties = async () => {
-    setLoading(true);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const isEditing = Boolean(editingId);
+
+  const sortedProperties = useMemo(
+    () =>
+      [...properties].sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() -
+          new Date(a.created_at).getTime()
+      ),
+    [properties]
+  );
+
+  async function loadProperties() {
     try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (typeFilter) params.set('propertyType', typeFilter);
-      if (listingFilter) params.set('listingType', listingFilter);
-      if (statusFilter) params.set('status', statusFilter);
-      const response = await fetch(`/api/properties?${params}`);
+      setLoading(true);
+      setError('');
+
+      const response = await fetch('/api/properties');
+
+      if (!response.ok) {
+        throw new Error('Failed to load properties');
+      }
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Unable to load properties');
-      setProperties(Array.isArray(data.properties) ? data.properties : []);
-    } catch (error) {
-      console.error(error);
-      setNotice({ text: 'Unable to load property adverts.', error: true });
+      setProperties(
+  Array.isArray(data)
+    ? data
+    : Array.isArray(data.properties)
+      ? data.properties
+      : []
+);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load properties'
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  useEffect(() => { loadProperties(); }, [typeFilter, listingFilter, statusFilter]);
+  useEffect(() => {
+    loadProperties();
+  }, []);
 
-  const update = (field: string, value: string | boolean) => setForm((current) => ({ ...current, [field]: value }));
-  const reset = () => { setEditingId(null); setForm(emptyProperty); };
-  const edit = (property: any) => {
+  function updateField<K extends keyof PropertyForm>(
+    field: K,
+    value: PropertyForm[K]
+  ) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  function resetForm() {
+    setForm(emptyForm);
+    setEditingId(null);
+    setCoverPreview(null);
+    setGalleryPreviews([]);
+    setError('');
+  }
+
+  function startEditing(property: Property) {
     setEditingId(property.id);
+
     setForm({
-      ...emptyProperty,
-      ...property,
-      galleryImages: Array.isArray(property.galleryImages) ? property.galleryImages.join('\n') : '',
-      published: Boolean(property.published),
+      title: property.title || '',
+      slug: property.slug || '',
+      description: property.description || '',
+      propertyType: property.property_type || 'House',
+      listingType: property.listing_type || 'For Sale',
+      price:
+        property.price !== null && property.price !== undefined
+          ? String(property.price)
+          : '',
+      currency: property.currency || 'NGN',
+      location: property.location || '',
+      address: property.address || '',
+      bedrooms:
+        property.bedrooms !== null && property.bedrooms !== undefined
+          ? String(property.bedrooms)
+          : '',
+      bathrooms:
+        property.bathrooms !== null && property.bathrooms !== undefined
+          ? String(property.bathrooms)
+          : '',
+      area:
+        property.area !== null && property.area !== undefined
+          ? String(property.area)
+          : '',
+      areaUnit: property.area_unit || 'sqm',
+      landSize:
+        property.land_size !== null && property.land_size !== undefined
+          ? String(property.land_size)
+          : '',
       furnished: Boolean(property.furnished),
       featured: Boolean(property.featured),
+      status: property.status || 'Available',
+      coverImageUrl: property.cover_image_url || '',
+      galleryImages: Array.isArray(property.gallery_images)
+        ? property.gallery_images
+        : [],
+      contactName: property.contact_name || '',
+      contactPhone: property.contact_phone || '',
+      contactEmail: property.contact_email || '',
+      published: Boolean(property.published),
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
-  const save = async (published: boolean) => {
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        published,
-        price: form.price || null,
-        bedrooms: form.bedrooms || null,
-        bathrooms: form.bathrooms || null,
-        area: form.area || null,
-        landSize: form.landSize || null,
-        galleryImages: form.galleryImages.split('\n').map((item) => item.trim()).filter(Boolean),
-      };
-      const response = await fetch(editingId ? `/api/properties/${editingId}` : '/api/properties', {
-        method: editingId ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+    setCoverPreview(property.cover_image_url || null);
+    setGalleryPreviews(
+      Array.isArray(property.gallery_images) ? property.gallery_images : []
+    );
+
+    setSuccess('');
+    setError('');
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  }
+
+  function handleTitleChange(value: string) {
+    setForm((current) => ({
+      ...current,
+      title: value,
+      slug:
+        editingId || current.slug
+          ? current.slug
+          : slugify(value),
+    }));
+  }
+
+    async function uploadImage(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/properties/images', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.url) {
+      console.error('Property image upload response:', {
+        status: response.status,
+        data,
       });
+
+      throw new Error(
+        data.error || `Image upload failed (${response.status})`
+      );
+    }
+
+    return data.url as string;
+  }
+
+
+async function handleCoverUpload(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    setUploading(true);
+    setError('');
+
+    // Show the image immediately while uploading
+    const preview = URL.createObjectURL(file);
+    setCoverPreview(preview);
+
+    // Upload to Supabase Storage
+    const url = await uploadImage(file);
+
+    // Persist the uploaded URL in the form state
+    setForm((current) => ({
+      ...current,
+      coverImageUrl: url,
+    }));
+
+    // Replace temporary preview with permanent Supabase URL
+    setCoverPreview(url);
+
+    // Clean up the temporary object URL
+    URL.revokeObjectURL(preview);
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : 'Cover image upload failed'
+    );
+
+    setCoverPreview(form.coverImageUrl || null);
+  } finally {
+    setUploading(false);
+    event.target.value = '';
+  }
+}
+
+async function handleGalleryUpload(
+  event: React.ChangeEvent<HTMLInputElement>
+) {
+  const files = Array.from(event.target.files || []);
+
+  if (!files.length) return;
+
+  try {
+    setUploading(true);
+    setError('');
+
+    const previews = files.map((file) => URL.createObjectURL(file));
+
+    setGalleryPreviews((current) => [...current, ...previews]);
+
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
+      const url = await uploadImage(file);
+      uploadedUrls.push(url);
+    }
+
+    setForm((current) => ({
+      ...current,
+      galleryImages: [...current.galleryImages, ...uploadedUrls],
+    }));
+
+    setGalleryPreviews((current) => {
+      const existingCount = current.length - previews.length;
+
+      return [
+        ...current.slice(0, existingCount),
+        ...uploadedUrls,
+      ];
+    });
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : 'Gallery upload failed'
+    );
+  } finally {
+    setUploading(false);
+    event.target.value = '';
+  }
+}
+
+function removeGalleryImage(index: number) {
+  setForm((current) => ({
+    ...current,
+    galleryImages: current.galleryImages.filter(
+      (_, imageIndex) => imageIndex !== index
+    ),
+  }));
+
+  setGalleryPreviews((current) =>
+    current.filter((_, imageIndex) => imageIndex !== index)
+  );
+}
+
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    try {
+      setSaving(true);
+      setError('');
+      setSuccess('');
+
+      const payload = {
+        title: form.title,
+        slug: form.slug || slugify(form.title),
+        description: form.description,
+        propertyType: form.propertyType,
+        listingType: form.listingType,
+        price: form.price,
+        currency: form.currency,
+        location: form.location,
+        address: form.address,
+        bedrooms: form.bedrooms,
+        bathrooms: form.bathrooms,
+        area: form.area,
+        areaUnit: form.areaUnit,
+        landSize: form.landSize,
+        furnished: form.furnished,
+        featured: form.featured,
+        status: form.status,
+        coverImageUrl: form.coverImageUrl,
+        galleryImages: form.galleryImages,
+        contactName: form.contactName,
+        contactPhone: form.contactPhone,
+        contactEmail: form.contactEmail,
+        published: form.published,
+      };
+
+      const response = await fetch(
+        editingId
+          ? `/api/properties/${editingId}`
+          : '/api/properties',
+        {
+          method: editingId ? 'PATCH' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Unable to save property');
-      setNotice({ text: published ? 'Property published successfully.' : 'Property draft saved.' });
-      reset();
-      await loadProperties();
-    } catch (error) {
-      console.error(error);
-      setNotice({ text: error instanceof Error ? error.message : 'Unable to save property.', error: true });
-    } finally { setSaving(false); }
-  };
 
-  const remove = async (id: string) => {
-    if (!window.confirm('Delete this property advert permanently?')) return;
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save property');
+      }
+
+      setSuccess(
+        editingId
+          ? 'Property updated successfully.'
+          : 'Property created successfully.'
+      );
+
+      resetForm();
+      await loadProperties();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to save property'
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this property?'
+    );
+
+    if (!confirmed) return;
+
     try {
-      const response = await fetch(`/api/properties/${id}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Unable to delete property');
-      setNotice({ text: 'Property advert deleted.' });
-      await loadProperties();
-    } catch (error) { console.error(error); setNotice({ text: 'Unable to delete property.', error: true }); }
-  };
+      setError('');
+      setSuccess('');
 
-  const toggle = async (property: any, field: 'published' | 'featured') => {
-    try {
-      const response = await fetch(`/api/properties/${property.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: !property[field] }) });
-      if (!response.ok) throw new Error('Unable to update property');
-      await loadProperties();
-    } catch (error) { console.error(error); setNotice({ text: 'Unable to update property.', error: true }); }
-  };
+      const response = await fetch(`/api/properties/${id}`, {
+        method: 'DELETE',
+      });
 
-  const inputClass = 'mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-gold';
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete property');
+      }
+
+      setSuccess('Property deleted successfully.');
+      await loadProperties();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to delete property'
+      );
+    }
+  }
+
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-5 mb-8">
-        <div><div className="flex items-center gap-3 mb-2"><div className="w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center"><Building2 className="w-5 h-5" /></div><h3 className="font-serif text-2xl font-bold text-navy">Property Advertisements</h3></div><p className="text-sm text-gray-500">Manage sale, rental, and lease adverts from one secure workspace.</p></div>
-        {notice && <div className={`rounded-xl px-4 py-3 text-sm font-semibold ${notice.error ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>{notice.text}</div>}
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-semibold">
+          Property Management
+        </h2>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Add and manage property listings, images, pricing and
+          publication status.
+        </p>
       </div>
-      <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5 md:p-6 mb-8">
-        <div className="flex justify-between items-center mb-5"><h4 className="font-bold text-navy">{editingId ? 'Edit Property' : 'New Property Advert'}</h4>{editingId && <button onClick={reset} className="text-xs font-bold text-gray-500 flex items-center gap-1"><X className="w-3 h-3" /> Cancel edit</button>}</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <label className="md:col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Title<input value={form.title} onChange={(e) => update('title', e.target.value)} className={inputClass} placeholder="Three-bedroom family home" /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Property type<select value={form.propertyType} onChange={(e) => update('propertyType', e.target.value)} className={inputClass}>{propertyTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Listing type<select value={form.listingType} onChange={(e) => update('listingType', e.target.value)} className={inputClass}>{listingTypes.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Price<input type="number" min="0" value={form.price} onChange={(e) => update('price', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Currency<input value={form.currency} onChange={(e) => update('currency', e.target.value)} className={inputClass} /></label>
-          <label className="md:col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Location<input value={form.location} onChange={(e) => update('location', e.target.value)} className={inputClass} placeholder="Lekki, Lagos" /></label>
-          <label className="md:col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Address<input value={form.address} onChange={(e) => update('address', e.target.value)} className={inputClass} /></label>
-          <label className="md:col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Description<textarea value={form.description} onChange={(e) => update('description', e.target.value)} rows={5} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bedrooms<input type="number" min="0" value={form.bedrooms} onChange={(e) => update('bedrooms', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Bathrooms<input type="number" min="0" value={form.bathrooms} onChange={(e) => update('bathrooms', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Area<input type="number" min="0" value={form.area} onChange={(e) => update('area', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Area unit<input value={form.areaUnit} onChange={(e) => update('areaUnit', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Land size<input type="number" min="0" value={form.landSize} onChange={(e) => update('landSize', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Status<select value={form.status} onChange={(e) => update('status', e.target.value)} className={inputClass}>{statuses.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="md:col-span-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Cover image URL<input value={form.coverImageUrl} onChange={(e) => update('coverImageUrl', e.target.value)} className={inputClass} placeholder="https://..." /></label>
-          <label className="md:col-span-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Gallery image URLs<textarea value={form.galleryImages} onChange={(e) => update('galleryImages', e.target.value)} rows={3} className={inputClass} placeholder="One URL per line" /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact name<input value={form.contactName} onChange={(e) => update('contactName', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact phone<input value={form.contactPhone} onChange={(e) => update('contactPhone', e.target.value)} className={inputClass} /></label>
-          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contact email<input type="email" value={form.contactEmail} onChange={(e) => update('contactEmail', e.target.value)} className={inputClass} /></label>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
         </div>
-        <div className="flex flex-wrap gap-5 mt-5 text-sm font-semibold text-gray-600"><label className="flex items-center gap-2"><input type="checkbox" checked={form.furnished} onChange={(e) => update('furnished', e.target.checked)} /> Furnished</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.featured} onChange={(e) => update('featured', e.target.checked)} /> Featured advert</label></div>
-        <div className="flex flex-wrap justify-end gap-3 mt-6">{editingId && <button onClick={reset} className="px-5 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-600">Cancel</button>}<button disabled={saving} onClick={() => save(false)} className="px-5 py-3 rounded-xl border border-navy text-sm font-bold text-navy disabled:opacity-50"><Plus className="w-4 h-4 inline mr-2" />Save Draft</button><button disabled={saving} onClick={() => save(true)} className="px-5 py-3 rounded-xl bg-navy text-white text-sm font-bold disabled:opacity-50"><CheckCircle2 className="w-4 h-4 inline mr-2" />{editingId ? 'Update & Publish' : 'Publish Property'}</button></div>
+      )}
+
+      {success && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-6 rounded-xl border bg-white p-6 shadow-sm"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">
+              {isEditing ? 'Edit Property' : 'Add Property'}
+            </h3>
+
+            <p className="text-sm text-gray-500">
+              Fill in the property information below.
+            </p>
+          </div>
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border px-4 py-2 text-sm"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
+
+        <div className="grid gap-5 md:grid-cols-2">
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Property Title *
+            </span>
+
+            <input
+              required
+              value={form.title}
+              onChange={(event) =>
+                handleTitleChange(event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="4 Bedroom Luxury Duplex"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Slug *
+            </span>
+
+            <input
+              required
+              value={form.slug}
+              onChange={(event) =>
+                updateField('slug', slugify(event.target.value))
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="4-bedroom-luxury-duplex"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Property Type
+            </span>
+
+            <select
+              value={form.propertyType}
+              onChange={(event) =>
+                updateField('propertyType', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            >
+              {PROPERTY_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Listing Type
+            </span>
+
+            <select
+              value={form.listingType}
+              onChange={(event) =>
+                updateField('listingType', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            >
+              {LISTING_TYPES.map((type) => (
+                <option key={type}>{type}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Price
+            </span>
+
+            <input
+              type="number"
+              min="0"
+              value={form.price}
+              onChange={(event) =>
+                updateField('price', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="150000000"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Currency
+            </span>
+
+            <select
+              value={form.currency}
+              onChange={(event) =>
+                updateField('currency', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            >
+              <option value="NGN">NGN</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Location
+            </span>
+
+            <input
+              value={form.location}
+              onChange={(event) =>
+                updateField('location', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="Lekki Phase 1, Lagos"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Address
+            </span>
+
+            <input
+              value={form.address}
+              onChange={(event) =>
+                updateField('address', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="Full property address"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Bedrooms
+            </span>
+
+            <input
+              type="number"
+              min="0"
+              value={form.bedrooms}
+              onChange={(event) =>
+                updateField('bedrooms', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Bathrooms
+            </span>
+
+            <input
+              type="number"
+              min="0"
+              value={form.bathrooms}
+              onChange={(event) =>
+                updateField('bathrooms', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Area
+            </span>
+
+            <input
+              type="number"
+              min="0"
+              value={form.area}
+              onChange={(event) =>
+                updateField('area', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+              placeholder="350"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Area Unit
+            </span>
+
+            <select
+              value={form.areaUnit}
+              onChange={(event) =>
+                updateField('areaUnit', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            >
+              <option value="sqm">sqm</option>
+              <option value="sqft">sqft</option>
+            </select>
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Land Size
+            </span>
+
+            <input
+              type="number"
+              min="0"
+              value={form.landSize}
+              onChange={(event) =>
+                updateField('landSize', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Status
+            </span>
+
+            <select
+              value={form.status}
+              onChange={(event) =>
+                updateField('status', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            >
+              {STATUSES.map((status) => (
+                <option key={status}>{status}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="block space-y-2">
+          <span className="text-sm font-medium">
+            Description
+          </span>
+
+          <textarea
+
+            rows={5}
+            value={form.description}
+            onChange={(event) =>
+              updateField('description', event.target.value)
+            }
+            className="w-full rounded-lg border px-3 py-2"
+            placeholder="Describe the property..."
+          />
+        </label>
+
+        <div className="space-y-3">
+  <div>
+    <h3 className="text-sm font-semibold text-gray-900">
+      Cover Image
+    </h3>
+    <p className="text-sm text-gray-500">
+      Upload the main image for this listing.
+    </p>
+  </div>
+
+  <div className="space-y-3">
+    {coverPreview ? (
+      <div className="relative overflow-hidden rounded-lg border">
+        <img
+          src={coverPreview}
+          alt="Cover preview"
+          className="h-56 w-full object-cover"
+        />
+
+        <label className="absolute bottom-3 right-3 cursor-pointer rounded-md bg-black/75 px-3 py-2 text-sm font-medium text-white hover:bg-black">
+          {uploading ? 'Uploading...' : 'Change image'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            className="hidden"
+            onChange={handleCoverUpload}
+            disabled={uploading}
+          />
+        </label>
       </div>
-      <div className="flex flex-col md:flex-row gap-3 mb-5"><div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadProperties()} placeholder="Search properties..." className="w-full rounded-xl border border-gray-200 px-10 py-3 text-sm outline-none focus:border-gold" /></div><select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="rounded-xl border border-gray-200 px-4 py-3 text-sm"><option value="">All types</option>{propertyTypes.map((item) => <option key={item}>{item}</option>)}</select><select value={listingFilter} onChange={(e) => setListingFilter(e.target.value)} className="rounded-xl border border-gray-200 px-4 py-3 text-sm"><option value="">All listing types</option>{listingTypes.map((item) => <option key={item}>{item}</option>)}</select><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-xl border border-gray-200 px-4 py-3 text-sm"><option value="">All statuses</option>{statuses.map((item) => <option key={item}>{item}</option>)}</select></div>
-      <div className="border border-gray-100 rounded-2xl overflow-hidden"><div className="px-5 py-4 bg-gray-50 flex justify-between"><span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Property library</span><span className="text-xs text-gray-400">{properties.length} advert{properties.length === 1 ? '' : 's'}</span></div>{loading ? <div className="p-10 text-center text-sm text-gray-500">Loading property adverts...</div> : properties.length === 0 ? <div className="p-10 text-center text-sm text-gray-500">No property adverts yet.</div> : <div className="divide-y divide-gray-100">{properties.map((property) => <div key={property.id} className="p-5 flex flex-col lg:flex-row lg:items-center gap-4"><div className="flex-1 min-w-0"><div className="flex flex-wrap items-center gap-2"><h5 className="font-bold text-navy truncate">{property.title}</h5><span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${property.published ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{property.published ? 'Published' : 'Draft'}</span>{property.featured && <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gold/10 text-gold">Featured</span>}</div><p className="text-xs text-gray-500 mt-1">{property.propertyType} · {property.listingType} · {property.location} · {property.status}</p></div><div className="flex items-center gap-2"><button onClick={() => toggle(property, 'published')} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 text-gray-600">{property.published ? 'Unpublish' : 'Publish'}</button><button onClick={() => toggle(property, 'featured')} className="px-3 py-2 rounded-lg text-xs font-bold border border-gray-200 text-gray-600">{property.featured ? 'Unfeature' : 'Feature'}</button><button onClick={() => edit(property)} className="p-2 rounded-lg text-navy hover:bg-navy/5"><Pencil className="w-4 h-4" /></button><button onClick={() => remove(property.id)} className="p-2 rounded-lg text-red-500 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button></div></div>)}</div>}</div>
+    ) : (
+      <label className="flex min-h-56 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed p-6 text-center hover:bg-gray-50">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          className="hidden"
+          onChange={handleCoverUpload}
+          disabled={uploading}
+        />
+
+        <span className="text-sm text-gray-600">
+          {uploading
+            ? 'Uploading...'
+            : 'Click to choose cover image'}
+        </span>
+      </label>
+    )}
+  </div>
+</div>
+
+<div className="space-y-3">
+  <div>
+    <h4 className="font-medium">Gallery Images</h4>
+    <p className="text-xs text-gray-500">
+      Upload multiple property images.
+    </p>
+  </div>
+
+  <label className="flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed p-6 text-center">
+    <input
+      type="file"
+      multiple
+      accept="image/jpeg,image/png,image/webp,image/gif"
+      className="hidden"
+      onChange={handleGalleryUpload}
+      disabled={uploading}
+    />
+
+    <span className="text-sm text-gray-600">
+      {uploading
+        ? 'Uploading...'
+        : 'Click to choose gallery images'}
+    </span>
+  </label>
+
+  {galleryPreviews.length > 0 && (
+    <div className="grid grid-cols-2 gap-3">
+      {galleryPreviews.map((image, index) => (
+        <div
+          key={`${image}-${index}`}
+          className="relative overflow-hidden rounded-lg border"
+        >
+          <img
+            src={image}
+            alt={`Gallery ${index + 1}`}
+            className="h-32 w-full object-cover"
+          />
+
+          <button
+            type="button"
+            onClick={() => removeGalleryImage(index)}
+            className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Contact Name
+            </span>
+
+            <input
+              value={form.contactName}
+              onChange={(event) =>
+                updateField('contactName', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Contact Phone
+            </span>
+
+            <input
+              value={form.contactPhone}
+              onChange={(event) =>
+                updateField('contactPhone', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+
+          <label className="space-y-2">
+            <span className="text-sm font-medium">
+              Contact Email
+            </span>
+
+            <input
+              type="email"
+              value={form.contactEmail}
+              onChange={(event) =>
+                updateField('contactEmail', event.target.value)
+              }
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-6">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.furnished}
+              onChange={(event) =>
+                updateField('furnished', event.target.checked)
+              }
+            />
+            <span className="text-sm">Furnished</span>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.featured}
+              onChange={(event) =>
+                updateField('featured', event.target.checked)
+              }
+            />
+            <span className="text-sm">Featured</span>
+          </label>
+
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.published}
+              onChange={(event) =>
+                updateField('published', event.target.checked)
+              }
+            />
+            <span className="text-sm">Published</span>
+          </label>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={saving || uploading}
+            className="rounded-lg bg-black px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {saving
+              ? 'Saving...'
+              : isEditing
+                ? 'Update Property'
+                : 'Add Property'}
+          </button>
+
+          {isEditing && (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border px-5 py-2.5 text-sm"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </form>
+
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold">
+            Existing Properties
+          </h3>
+
+          <p className="text-sm text-gray-500">
+            {properties.length} {properties.length === 1 ? 'property' : 'properties'}
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="rounded-xl border bg-white p-8 text-center text-sm text-gray-500">
+            Loading properties...
+          </div>
+        ) : sortedProperties.length === 0 ? (
+          <div className="rounded-xl border bg-white p-8 text-center text-sm text-gray-500">
+            No properties have been added yet.
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {sortedProperties.map((property) => (
+              <article
+                key={property.id}
+                className="overflow-hidden rounded-xl border bg-white shadow-sm"
+              >
+                {property.cover_image_url ? (
+                  <img
+                    src={property.cover_image_url}
+                    alt={property.title}
+                    className="h-48 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-48 items-center justify-center bg-gray-100 text-sm text-gray-500">
+                    No image
+                  </div>
+                )}
+
+                <div className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h4 className="font-semibold">
+                        {property.title}
+                      </h4>
+
+                      <p className="text-sm text-gray-500">
+                        {property.location || 'Location not specified'}
+                      </p>
+                    </div>
+
+                    {property.featured && (
+                      <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs">
+                        Featured
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-gray-100 px-2 py-1">
+                      {property.property_type}
+                    </span>
+
+                    <span className="rounded-full bg-gray-100 px-2 py-1">
+                      {property.listing_type}
+                    </span>
+
+                    <span className="rounded-full bg-gray-100 px-2 py-1">
+                      {property.status}
+                    </span>
+
+                    {property.published && (
+                      <span className="rounded-full bg-green-100 px-2 py-1">
+                        Published
+                      </span>
+                    )}
+                  </div>
+
+                  {property.price !== null && (
+                    <p className="font-semibold">
+                      {property.currency}{' '}
+                      {Number(property.price).toLocaleString()}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEditing(property)}
+                      className="rounded-lg border px-3 py-2 text-sm"
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(property.id)}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
+
+
+
+
+

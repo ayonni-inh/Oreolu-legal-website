@@ -9,9 +9,8 @@ export type BlogPostRecord = {
   category: string;
   cover_image_url: string | null;
   author: string;
-  read_time: string;
+  read_time: number;
   published: boolean;
-  published_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -41,7 +40,7 @@ export type PropertyListingRecord = {
   contact_phone: string | null;
   contact_email: string | null;
   published: boolean;
-  published_at: string | null;
+
   created_at: string;
   updated_at: string;
 };

@@ -141,13 +141,7 @@ export default function Portal() {
       case currentPage.startsWith('blog-') ? currentPage : '__not-blog':
         return <Blog slug={currentPage.startsWith('blog-') ? currentPage.slice(5) : undefined} />;
       case 'properties':
-      case currentPage.startsWith('properties-') ? currentPage : '__not-properties':
-        return (
-          <Properties
-            slug={currentPage.startsWith('properties-') ? currentPage.slice(11) : undefined}
-            onEnquire={() => setSelectedService({ title: 'Property Consultation', price: 'TBD' })}
-          />
-        );
+  return <Properties />;
       case 'contact-us':
         return <ContactUs />;
       case 'terms-of-service':

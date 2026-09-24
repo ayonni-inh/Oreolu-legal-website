@@ -1,98 +1,362 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, BedDouble, Building2, CheckCircle2, Home, Loader2, MapPin, Ruler, Search, ShowerHead, Star } from 'lucide-react';
+import {
+  ArrowRight,
+  Bath,
+  BedDouble,
+  Building2,
+  Home,
+  Loader2,
+  MapPin,
+  Ruler,
+  Search,
+  Star,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type Property = {
-  id: string; slug: string; title: string; description: string; propertyType: string; listingType: string;
-  price: number | null; currency: string; location: string; address?: string | null; bedrooms?: number | null;
-  bathrooms?: number | null; area?: number | null; areaUnit?: string; landSize?: number | null;
-  furnished: boolean; featured: boolean; status: string; coverImageUrl?: string | null; galleryImages?: string[];
-  contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null;
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  propertyType: string;
+  listingType: string;
+  price: number | null;
+  currency: string;
+  location: string;
+  address?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  area?: number | null;
+  areaUnit?: string;
+  landSize?: number | null;
+  furnished: boolean;
+  featured: boolean;
+  status: string;
+  coverImageUrl?: string | null;
+  galleryImages?: string[];
 };
 
-function money(property: Property) {
-  if (property.price === null || property.price === undefined) return 'Price on enquiry';
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: property.currency || 'NGN', maximumFractionDigits: 0 }).format(Number(property.price));
-}
-
-export default function Properties({ slug, onEnquire }: { slug?: string; onEnquire?: (property: Property) => void }) {
-  const router = useRouter();
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [property, setProperty] = useState<Property | null>(null);
-  const [loading, setLoading] = useState(Boolean(slug));
-  const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ propertyType: '', listingType: '', bedrooms: '', minPrice: '', maxPrice: '' });
-
-  const loadDirectory = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (filters.propertyType) params.set('propertyType', filters.propertyType);
-      if (filters.listingType) params.set('listingType', filters.listingType);
-    const response = await fetch(`/api/properties?${params}`);
-const data = await response.json();
-
-if (!response.ok) throw new Error();
-
-const rawProperties = Array.isArray(data)
-  ? data
-  : Array.isArray(data.properties)
-    ? data.properties
-    : [];
-
-let result: Property[] = rawProperties.map((item: any) => ({
-  id: item.id,
-  slug: item.slug,
-  title: item.title,
-  description: item.description || '',
-  propertyType: item.property_type || 'House',
-  listingType: item.listing_type || 'For Sale',
-  price: item.price,
-  currency: item.currency || 'NGN',
-  location: item.location || '',
-  address: item.address || null,
-  bedrooms: item.bedrooms,
-  bathrooms: item.bathrooms,
-  area: item.area,
-  areaUnit: item.area_unit || 'sqm',
-  landSize: item.land_size,
-  furnished: Boolean(item.furnished),
-  featured: Boolean(item.featured),
-  status: item.status || 'Available',
-  coverImageUrl: item.cover_image_url || null,
-  galleryImages: Array.isArray(item.gallery_images)
-    ? item.gallery_images
-    : [],
-  contactName: item.contact_name || null,
-  contactPhone: item.contact_phone || null,
-  contactEmail: item.contact_email || null,
-}));
-      if (filters.bedrooms) result = result.filter((item: Property) => Number(item.bedrooms || 0) >= Number(filters.bedrooms));
-      if (filters.minPrice) result = result.filter((item: Property) => Number(item.price || 0) >= Number(filters.minPrice));
-      if (filters.maxPrice) result = result.filter((item: Property) => Number(item.price || 0) <= Number(filters.maxPrice));
-      setProperties(result);
-    } catch { setError('Unable to load property adverts right now.'); } finally { setLoading(false); }
-  };
-
-  const loadProperty = async (propertySlug: string) => {
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/properties/${encodeURIComponent(propertySlug)}`);
-      const data = await response.json();
-      if (!response.ok) throw new Error();
-      setProperty(data);
-    } catch { setError('This property is unavailable or is no longer published.'); } finally { setLoading(false); }
-  };
-
-  useEffect(() => { if (slug) loadProperty(slug); else loadDirectory(); }, [slug, filters.propertyType, filters.listingType, filters.bedrooms, filters.minPrice, filters.maxPrice]);
-
-  if (slug) {
-    return <div className="min-h-screen bg-gray-50 pt-28 pb-16"><div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"><button onClick={() => router.push('/properties')} className="flex items-center gap-2 text-sm font-bold text-navy hover:text-gold mb-8"><ArrowLeft className="w-4 h-4" /> Back to Properties</button>{loading ? <div className="py-24 flex justify-center"><Loader2 className="w-8 h-8 text-gold animate-spin" /></div> : error ? <div className="bg-red-50 rounded-2xl p-6 text-center text-red-700">{error}</div> : property && <article className="bg-white rounded-3xl shadow-sm overflow-hidden"><div className="grid lg:grid-cols-2 gap-0">{property.coverImageUrl ? <img src={property.coverImageUrl} alt={property.title} className="w-full h-80 lg:h-full min-h-[420px] object-cover" /> : <div className="min-h-[420px] bg-navy/5 flex items-center justify-center"><Building2 className="w-20 h-20 text-gold/50" /></div>}<div className="p-7 md:p-10"><div className="flex flex-wrap gap-2 mb-5"><span className="rounded-full bg-gold/10 text-gold px-3 py-1 text-xs font-bold uppercase">{property.listingType}</span><span className="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs font-bold uppercase">{property.status}</span>{property.featured && <span className="rounded-full bg-navy text-white px-3 py-1 text-xs font-bold uppercase flex items-center gap-1"><Star className="w-3 h-3" /> Featured</span>}</div><h1 className="text-4xl font-serif font-bold text-navy mb-3">{property.title}</h1><p className="flex items-center gap-2 text-gray-500 mb-6"><MapPin className="w-4 h-4 text-gold" />{property.location}</p><p className="text-2xl font-bold text-navy mb-8">{money(property)}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">{property.bedrooms !== null && property.bedrooms !== undefined && <div className="rounded-xl bg-gray-50 p-3"><BedDouble className="w-4 h-4 text-gold mb-2" /><p className="text-xs text-gray-500">Bedrooms</p><p className="font-bold text-navy">{property.bedrooms}</p></div>}{property.bathrooms !== null && property.bathrooms !== undefined && <div className="rounded-xl bg-gray-50 p-3"><ShowerHead className="w-4 h-4 text-gold mb-2" /><p className="text-xs text-gray-500">Bathrooms</p><p className="font-bold text-navy">{property.bathrooms}</p></div>}{property.area !== null && property.area !== undefined && <div className="rounded-xl bg-gray-50 p-3"><Ruler className="w-4 h-4 text-gold mb-2" /><p className="text-xs text-gray-500">Area</p><p className="font-bold text-navy">{property.area} {property.areaUnit}</p></div>}<div className="rounded-xl bg-gray-50 p-3"><Home className="w-4 h-4 text-gold mb-2" /><p className="text-xs text-gray-500">Type</p><p className="font-bold text-navy">{property.propertyType}</p></div></div><p className="text-gray-600 leading-relaxed whitespace-pre-line mb-8">{property.description}</p>{property.furnished && <p className="flex items-center gap-2 text-sm text-emerald-700 font-semibold mb-5"><CheckCircle2 className="w-4 h-4" /> Furnished property</p>}<button onClick={() => onEnquire?.(property)} className="w-full rounded-xl bg-navy text-white px-5 py-4 font-bold hover:bg-navy-light transition-colors">Enquire About This Property</button>{(property.contactPhone || property.contactEmail) && <div className="mt-6 text-sm text-gray-500"><p className="font-bold text-navy mb-1">{property.contactName || 'Property enquiries'}</p>{property.contactPhone && <p>{property.contactPhone}</p>}{property.contactEmail && <p>{property.contactEmail}</p>}</div>}</div></div>{(property.galleryImages || []).length > 0 && <div className="p-6 md:p-8 border-t border-gray-100"><h2 className="font-serif text-xl font-bold text-navy mb-4">Gallery</h2><div className="grid grid-cols-2 md:grid-cols-4 gap-4">{property.galleryImages?.map((image) => <img key={image} src={image} alt="" className="h-32 w-full rounded-xl object-cover" referrerPolicy="no-referrer" />)}</div></div>}</article>}</div></div>;
+function formatPrice(property: Property) {
+  if (property.price === null || property.price === undefined) {
+    return 'Price on enquiry';
   }
 
-  return <div className="min-h-screen bg-gray-50 pt-28 pb-16"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"><div className="mb-10"><p className="text-xs font-bold uppercase tracking-[0.25em] text-gold mb-3">OGA property desk</p><h1 className="text-4xl font-serif font-bold text-navy mb-3">Property Advertisements</h1><p className="text-lg text-gray-600 max-w-2xl">Browse verified properties available for sale, rent, and lease.</p></div><div className="bg-white rounded-2xl border border-gray-100 p-4 mb-8 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3"><div className="relative lg:col-span-2"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" /><input value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && loadDirectory()} placeholder="Search location or title" className="w-full rounded-xl border border-gray-200 px-10 py-3 text-sm outline-none focus:border-gold" /></div><select value={filters.propertyType} onChange={(e) => setFilters({ ...filters, propertyType: e.target.value })} className="rounded-xl border border-gray-200 px-3 py-3 text-sm"><option value="">All property types</option>{['House', 'Apartment', 'Duplex', 'Land', 'Office', 'Shop', 'Commercial'].map((item) => <option key={item}>{item}</option>)}</select><select value={filters.listingType} onChange={(e) => setFilters({ ...filters, listingType: e.target.value })} className="rounded-xl border border-gray-200 px-3 py-3 text-sm"><option value="">Sale / Rent / Lease</option>{['For Sale', 'For Rent', 'For Lease'].map((item) => <option key={item}>{item}</option>)}</select><input type="number" value={filters.bedrooms} onChange={(e) => setFilters({ ...filters, bedrooms: e.target.value })} placeholder="Min bedrooms" className="rounded-xl border border-gray-200 px-3 py-3 text-sm outline-none focus:border-gold" /><button onClick={loadDirectory} className="rounded-xl bg-navy text-white px-4 py-3 text-sm font-bold">Search</button></div>{loading ? <div className="py-24 flex justify-center"><Loader2 className="w-8 h-8 text-gold animate-spin" /></div> : error ? <div className="bg-red-50 text-red-700 rounded-2xl p-6 text-center">{error}</div> : properties.length === 0 ? <div className="bg-white rounded-2xl p-12 text-center text-gray-500">No published properties match these filters.</div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">{properties.map((item) => <article key={item.id} onClick={() => router.push(`/properties/${item.slug}`)} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow cursor-pointer group">{item.coverImageUrl ? <img src={item.coverImageUrl} alt={item.title} className="h-52 w-full object-cover group-hover:scale-105 transition-transform duration-500" referrerPolicy="no-referrer" /> : <div className="h-52 bg-navy/5 flex items-center justify-center"><Building2 className="w-14 h-14 text-gold/50" /></div>}<div className="p-6"><div className="flex justify-between items-start gap-3 mb-3"><div><span className="text-xs font-bold text-gold uppercase tracking-wider">{item.listingType}</span><h2 className="text-xl font-serif font-bold text-navy mt-1">{item.title}</h2></div>{item.featured && <Star className="w-5 h-5 text-gold fill-gold shrink-0" />}</div><p className="flex items-center gap-1 text-sm text-gray-500 mb-4"><MapPin className="w-4 h-4" />{item.location}</p><p className="text-lg font-bold text-navy mb-5">{money(item)}</p><div className="flex flex-wrap gap-3 text-xs text-gray-500">{item.propertyType && <span>{item.propertyType}</span>}{item.bedrooms !== null && item.bedrooms !== undefined && <span>{item.bedrooms} beds</span>}{item.bathrooms !== null && item.bathrooms !== undefined && <span>{item.bathrooms} baths</span>}{item.area && <span>{item.area} {item.areaUnit}</span>}</div><div className="flex items-center gap-1 text-sm font-bold text-gold mt-6">View property <ArrowRight className="w-4 h-4" /></div></div></article>)}</div>}</div></div>;
+  try {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: property.currency || 'NGN',
+      maximumFractionDigits: 0,
+    }).format(Number(property.price));
+  } catch {
+    return `${property.currency || 'NGN'} ${Number(property.price).toLocaleString()}`;
+  }
+}
+
+export default function Properties() {
+  const router = useRouter();
+
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [propertyType, setPropertyType] = useState('');
+  const [listingType, setListingType] = useState('');
+
+  const loadProperties = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const params = new URLSearchParams();
+
+      if (search.trim()) {
+        params.set('search', search.trim());
+      }
+
+      if (propertyType) {
+        params.set('propertyType', propertyType);
+      }
+
+      if (listingType) {
+        params.set('listingType', listingType);
+      }
+
+      const response = await fetch(
+        `/api/properties?${params.toString()}`,
+        { cache: 'no-store' }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to load properties');
+      }
+
+      const rawProperties = Array.isArray(data)
+        ? data
+        : Array.isArray(data.properties)
+          ? data.properties
+          : [];
+
+      const normalized: Property[] = rawProperties.map((item: any) => ({
+        id: item.id,
+        slug: item.slug,
+        title: item.title,
+        description: item.description || '',
+        propertyType: item.property_type || 'House',
+        listingType: item.listing_type || 'For Sale',
+        price: item.price,
+        currency: item.currency || 'NGN',
+        location: item.location || '',
+        address: item.address || null,
+        bedrooms: item.bedrooms,
+        bathrooms: item.bathrooms,
+        area: item.area,
+        areaUnit: item.area_unit || 'sqm',
+        landSize: item.land_size,
+        furnished: Boolean(item.furnished),
+        featured: Boolean(item.featured),
+        status: item.status || 'Available',
+        coverImageUrl: item.cover_image_url || null,
+        galleryImages: Array.isArray(item.gallery_images)
+          ? item.gallery_images
+          : [],
+      }));
+
+      setProperties(normalized);
+    } catch (err) {
+      console.error('Properties load error:', err);
+      setError('Unable to load property adverts right now.');
+      setProperties([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProperties();
+  }, [propertyType, listingType]);
+
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    loadProperties();
+  };
+
+  return (
+    <section className="min-h-screen bg-white dark:bg-slate-950 pt-32 pb-20">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+
+        <div className="max-w-3xl mb-10">
+          <p className="text-sm font-semibold tracking-[0.2em] uppercase text-gold mb-3">
+            Property Advertisements
+          </p>
+
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-navy dark:text-white">
+            Find Your Next Property
+          </h1>
+
+          <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">
+            Browse property advertisements available for sale, rent and lease
+            through OROELU GODWIN AGIDI &amp; CO.
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSearch}
+          className="bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 mb-10"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+
+            <div className="relative md:col-span-2">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={19}
+              />
+
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search location or property..."
+                className="w-full rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 py-3 pl-11 pr-4 outline-none focus:ring-2 focus:ring-gold/40"
+              />
+            </div>
+
+            <select
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value)}
+              className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 outline-none"
+            >
+              <option value="">All property types</option>
+              <option value="House">House</option>
+              <option value="Apartment">Apartment</option>
+              <option value="Flat">Flat</option>
+              <option value="Duplex">Duplex</option>
+              <option value="Land">Land</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Office">Office</option>
+            </select>
+
+            <select
+              value={listingType}
+              onChange={(e) => setListingType(e.target.value)}
+              className="rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-4 py-3 outline-none"
+            >
+              <option value="">Sale / Rent / Lease</option>
+              <option value="For Sale">For Sale</option>
+              <option value="For Rent">For Rent</option>
+              <option value="For Lease">For Lease</option>
+            </select>
+
+          </div>
+
+          <button
+            type="submit"
+            className="mt-3 inline-flex items-center gap-2 rounded-xl bg-navy text-white px-6 py-3 font-semibold hover:opacity-90 transition"
+          >
+            Search Properties
+            <Search size={17} />
+          </button>
+        </form>
+
+        {loading ? (
+          <div className="py-24 flex flex-col items-center justify-center text-gray-500">
+            <Loader2 className="animate-spin mb-4" size={30} />
+            <p>Loading properties...</p>
+          </div>
+        ) : error ? (
+          <div className="py-20 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+
+            <button
+              onClick={loadProperties}
+              className="rounded-lg bg-navy text-white px-5 py-2"
+            >
+              Try Again
+            </button>
+          </div>
+        ) : properties.length === 0 ? (
+          <div className="py-24 text-center border border-dashed border-gray-300 dark:border-slate-700 rounded-2xl">
+            <Home className="mx-auto mb-4 text-gray-400" size={40} />
+
+            <h2 className="text-2xl font-serif font-semibold text-navy dark:text-white">
+              No properties found
+            </h2>
+
+            <p className="mt-2 text-gray-500">
+              Check back soon for new property advertisements.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-gray-500">
+                {properties.length}{' '}
+                {properties.length === 1 ? 'property' : 'properties'} available
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7">
+              {properties.map((property) => (
+                <article
+                  key={property.id}
+                  className="group overflow-hidden rounded-2xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-slate-800">
+
+                    {property.coverImageUrl ? (
+                      <img
+                        src={property.coverImageUrl}
+                        alt={property.title}
+                        className="h-full w-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center">
+                        <Building2
+                          size={50}
+                          className="text-gray-300 dark:text-slate-600"
+                        />
+                      </div>
+                    )}
+
+                    {property.featured && (
+                      <div className="absolute top-4 left-4 inline-flex items-center gap-1 rounded-full bg-gold px-3 py-1 text-xs font-bold text-white">
+                        <Star size={12} fill="currentColor" />
+                        Featured
+                      </div>
+                    )}
+
+                    <div className="absolute bottom-4 left-4 rounded-lg bg-navy/90 text-white px-3 py-1.5 text-xs font-semibold">
+                      {property.listingType}
+                    </div>
+                  </div>
+
+                  <div className="p-5">
+                    <p className="text-sm text-gold font-semibold mb-1">
+                      {property.propertyType}
+                    </p>
+
+                    <h2 className="text-xl font-serif font-bold text-navy dark:text-white line-clamp-2">
+                      {property.title}
+                    </h2>
+
+                    {property.location && (
+                      <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+                        <MapPin size={15} />
+                        <span className="line-clamp-1">
+                          {property.location}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="mt-4 text-xl font-bold text-navy dark:text-white">
+                      {formatPrice(property)}
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
+                      {property.bedrooms !== null &&
+                        property.bedrooms !== undefined && (
+                          <span className="flex items-center gap-1.5">
+                            <BedDouble size={16} />
+                            {property.bedrooms} bed
+                          </span>
+                        )}
+
+                      {property.bathrooms !== null &&
+                        property.bathrooms !== undefined && (
+                          <span className="flex items-center gap-1.5">
+                            <Bath size={16} />
+                            {property.bathrooms} bath
+                          </span>
+                        )}
+
+                      {property.area !== null &&
+                        property.area !== undefined && (
+                          <span className="flex items-center gap-1.5">
+                            <Ruler size={16} />
+                            {property.area} {property.areaUnit || 'sqm'}
+                          </span>
+                        )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(`/properties/${property.slug}`)
+                      }
+                      className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-navy dark:border-gold text-navy dark:text-gold px-4 py-3 font-semibold hover:bg-navy hover:text-white dark:hover:bg-gold dark:hover:text-navy transition"
+                    >
+                      View Property
+                      <ArrowRight size={17} />
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
 }
