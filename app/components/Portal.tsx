@@ -205,11 +205,20 @@ export default function Portal() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+  try {
+    await fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout request failed:', error);
+  } finally {
     setCurrentUser(null);
     setIsLoggedIn(false);
     navigate('home');
-  };
+  }
+};
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 font-sans text-gray-900 dark:text-gray-100 transition-colors">
