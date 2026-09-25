@@ -26,5 +26,7 @@ export async function GET(req: NextRequest) {
     return response;
   }
 
-  return NextResponse.json({ user });
+ const { passwordHash: _passwordHash, ...safeUser } = user;
+
+return NextResponse.json({ user: safeUser });
 }
