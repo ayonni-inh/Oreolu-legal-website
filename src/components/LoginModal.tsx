@@ -14,6 +14,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'login' | 'forgot-password' | 'forgot-password-success' | 'pending-approval' | 'blocked'>('login');
+  const [showResendVerification, setShowResendVerification] = useState(false);
   
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +46,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    setShowResendVerification(false);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -53,11 +55,28 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.error === 'PENDING') { setView('pending-approval'); return; }
-        if (data.error === 'BLOCKED') { setView('blocked'); return; }
-        setError(data.error || 'Login failed. Please check your credentials.');
-        return;
-      }
+  if (data.error === 'PENDING') {
+    setView('pending-approval');
+    return;
+  }
+
+  if (data.error === 'BLOCKED') {
+    setView('blocked');
+    return;
+  }
+
+  if (data.error === 'EMAIL_UNVERIFIED') {
+  setShowResendVerification(true);
+  setError(
+    data.message ||
+    'Please verify your email address before logging in.'
+  );
+  return;
+}
+
+  setError(data.error || 'Login failed. Please check your credentials.');
+  return;
+}
       onSuccess(data.user);
     } catch {
       setError('Unable to connect. Please try again.');
@@ -65,6 +84,44 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
       setIsSubmitting(false);
     }
   };
+
+  const handleResendVerification = async () => {
+  if (!email.trim()) {
+    setError('Please enter your email address first.');
+    return;
+  }
+
+  setIsSubmitting(true);
+  setError(null);
+
+  try {
+    const response = await fetch('/api/auth/resend-verification', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(
+        data.error || 'Unable to resend verification email. Please try again.'
+      );
+      return;
+    }
+
+    setError(
+      data.message ||
+      'A new verification link has been sent to your email address.'
+    );
+  } catch {
+    setError('Unable to connect. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const quickLogin = (role: 'Client' | 'Staff' | 'Admin') => {
     const creds = {
@@ -229,7 +286,20 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onRegisterClick
                 ) : (
                   <>Login <ArrowRight className="w-4 h-4" aria-hidden="true" /></>
                 )}
+
+                
               </button>
+              
+ {showResendVerification && (
+  <button
+    type="button"
+    onClick={handleResendVerification}
+    disabled={isSubmitting}
+    className="w-full border border-navy text-navy hover:bg-navy hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors mb-4"
+  >
+    Resend verification email
+  </button>
+)}
               
               <div className="text-center text-sm text-gray-600">
                 Don't have an account?{' '}

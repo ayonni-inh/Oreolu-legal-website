@@ -103,10 +103,6 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
     onClose();
   };
 
-  const handleSuccess = () => {
-    if (onSuccess) onSuccess({ ...formData, status: 'PENDING' });
-    resetAndClose();
-  };
 
   const calculatePasswordStrength = (password: string) => {
     let score = 0;
@@ -392,46 +388,65 @@ export default function RegistrationModal({ isOpen, onClose, onSuccess }: Regist
             </form>
           )}
 
-          {step === 3 && (
-            <div className="text-center py-6 animate-in zoom-in duration-500" role="status">
+                    {step === 3 && (
+            <div
+              className="text-center py-6 animate-in zoom-in duration-500"
+              role="status"
+            >
               <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <CheckCircle2 className="w-10 h-10 text-green-600" aria-hidden="true" />
-              </div>
-              <h3 className="font-serif text-2xl font-bold text-navy mb-2">Welcome, {formData.firstName}!</h3>
-              <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
-                Your client account has been created successfully. A welcome email with your login details has been sent to <span className="font-semibold text-navy">{formData.email}</span>.
-              </p>
-              
-              <div className="bg-navy rounded-2xl p-6 max-w-xs mx-auto mb-6 text-left">
-                <p className="text-gold text-[10px] uppercase tracking-widest font-bold mb-3">Your Client Credentials</p>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-white/50 text-[10px] uppercase tracking-wider">Client ID</p>
-                    <p className="text-white font-mono text-xl font-bold tracking-wide">{formData.clientId}</p>
-                  </div>
-                  {formData.companyName && (
-                    <div>
-                      <p className="text-white/50 text-[10px] uppercase tracking-wider">Company</p>
-                      <p className="text-white text-sm font-semibold">{formData.companyName}</p>
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-white/50 text-[10px] uppercase tracking-wider">Email</p>
-                    <p className="text-white text-sm">{formData.email}</p>
-                  </div>
-                </div>
-                <p className="text-white/40 text-[10px] mt-4 italic">Save your Client ID — you may need it when contacting us.</p>
+                <CheckCircle2
+                  className="w-10 h-10 text-green-600"
+                  aria-hidden="true"
+                />
               </div>
 
-              <button 
-                onClick={handleSuccess}
+              <h3 className="font-serif text-2xl font-bold text-navy mb-2">
+                Check your email
+              </h3>
+
+              <p className="text-gray-500 text-sm max-w-sm mx-auto mb-4">
+                Welcome, {formData.firstName}! Your client account has been
+                created successfully.
+              </p>
+
+              <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
+                We've sent a verification link to{' '}
+                <span className="font-semibold text-navy">
+                  {formData.email}
+                </span>
+                . Please click the link in that email to verify your address
+                and activate your account.
+              </p>
+
+              <div className="bg-navy rounded-2xl p-6 max-w-xs mx-auto mb-6 text-left">
+                <p className="text-gold text-[10px] uppercase tracking-widest font-bold mb-3">
+                  Your Client ID
+                </p>
+
+                <p className="text-white font-mono text-xl font-bold tracking-wide">
+                  {formData.clientId}
+                </p>
+
+                <p className="text-white/40 text-[10px] mt-4 italic">
+                  Save your Client ID — you may need it when contacting us.
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">
+                The verification link expires in 24 hours. You won't be able
+                to log in until your email has been verified.
+              </p>
+
+              <button
+                type="button"
+                onClick={resetAndClose}
                 className="bg-gold hover:bg-gold-hover text-white px-8 py-3 rounded-lg font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 outline-none"
               >
-                Access My Dashboard →
+                Return to Login
               </button>
             </div>
           )}
-        </div>
+          </div>
       </div>
     </div>
   );

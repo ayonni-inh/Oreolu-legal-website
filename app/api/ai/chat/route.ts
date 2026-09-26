@@ -36,7 +36,12 @@ export async function POST(req: NextRequest) {
         4. Address: SUITE C20/C21, CHERUB MALL, Lekki, Lagos. Phone: +234 803 320 1909.`
     } as any);
     return NextResponse.json({ text: result.response.text() });
-  } catch {
-    return NextResponse.json({ error: 'AI processing failed' }, { status: 500 });
+    } catch (error) {
+    console.error("AI chat generation failed:", error);
+
+    return NextResponse.json(
+      { error: "AI processing failed" },
+      { status: 500 }
+    );
   }
 }

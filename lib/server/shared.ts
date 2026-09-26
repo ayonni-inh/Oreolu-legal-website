@@ -159,22 +159,39 @@ export async function sendEmail(
   html: string,
 ) {
   const key = process.env.RESEND_API_KEY;
-  if (!key || key.startsWith("re_123456789") || key === "your_resend_api_key")
+
+  if (
+    !key ||
+    key.startsWith("re_123456789") ||
+    key === "your_resend_api_key"
+  ) {
+    console.warn("Email send skipped: RESEND_API_KEY is missing or invalid.");
     return false;
+  }
+
   try {
     const resend = new Resend(key);
     const recipients = Array.isArray(to) ? to : [to];
+
     for (const addr of recipients.slice(0, 5)) {
-      await resend.emails.send({
+      const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
         to: addr,
         subject,
         html,
       });
+
+      if (error) {
+        console.error("Resend email error:", error);
+        return false;
+      }
+
+      console.log("Resend email accepted:", data);
     }
+
     return true;
   } catch (e) {
-    console.warn("Email send failed:", (e as any)?.message);
+    console.error("Email send failed:", e);
     return false;
   }
 }
@@ -261,7 +278,8 @@ export function toShortDateString(date = new Date()) {
 // Gemini AI client
 let genAI: GoogleGenerativeAI | null = null;
 export function getGenAI() {
-  if (genAI) return genAI;
+
+
   if (!process.env.GEMINI_API_KEY) return null;
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   return genAI;
@@ -270,7 +288,7 @@ export function getGenAI() {
 export function getModel() {
   const ai = getGenAI();
   if (!ai) return null;
-  return ai.getGenerativeModel({ model: "gemini-2.5-flash" });
+  return ai.getGenerativeModel({ model: "gemini-3.8-flash" });
 }
 
 export function cleanJsonText(text: string) {
