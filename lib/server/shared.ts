@@ -1,8 +1,9 @@
 import crypto from "crypto";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createClient } from "@supabase/supabase-js";
-import { Resend } from "resend";
+import {  Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdminClient } from "@/lib/server/admin";
 
 // Session helpers (signed cookie, server-side authoritative identity)
 const SESSION_COOKIE = "oga_session";
@@ -78,33 +79,46 @@ export function clearSessionCookie(response: NextResponse) {
   });
 }
 
+
 export async function loadUserById(id: string): Promise<any | null> {
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    try {
-      const { data } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      if (data) {
-        return {
-          id: data.id,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          email: data.email,
-          appRole: data.app_role,
-          status: data.status,
-          permissions: data.permissions || [],
-          passwordHash: data.password_hash,
-        };
-      }
-    } catch {
-      // Fall through to in-memory fallback if Supabase is unavailable or schema is incomplete.
-    }
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    console.error(
+      "Admin Supabase client unavailable while loading session user"
+    );
+    return null;
   }
-  return fallbackUsers.find((u) => u.id === id) || null;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select(
+      "id, first_name, last_name, email, app_role, status, permissions, password_hash"
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Session user lookup failed:", error.message);
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return {
+    id: data.id,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    email: data.email,
+    appRole: data.app_role,
+    status: data.status,
+    permissions: data.permissions || [],
+    passwordHash: data.password_hash,
+  };
 }
+
 
 export async function requireRole(req: NextRequest, allowed: string[]) {
   const session = readSessionCookie(req);
