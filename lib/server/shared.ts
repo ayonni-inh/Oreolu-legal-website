@@ -45,9 +45,17 @@ export function readSessionCookie(
   if (!raw) return null;
   try {
     const [b64, sig] = raw.split(".");
-    if (!b64 || !sig) return null;
+    if (!b64 || !sig) {
+  console.warn("[OGA AUTH DIAGNOSTIC] Session cookie format invalid");
+  return null;
+}
     const payload = Buffer.from(b64, "base64").toString("utf8");
-    if (signCookie(payload) !== sig) return null;
+    const expectedSignature = signCookie(payload);
+
+if (expectedSignature !== sig) {
+  console.warn("[OGA AUTH DIAGNOSTIC] Session signature mismatch");
+  return null;
+}
     const data = JSON.parse(payload);
     if (Date.now() - (data.ts || 0) > SESSION_TTL_MS) return null;
     return { id: data.id, role: data.role, email: data.email };
